@@ -51,7 +51,7 @@ def create_pedido(
                 "producto": producto,
                 "cantidad": cantidad,
                 "precio_unitario": producto.precio,
-                "colaborador": producto.colaborador,
+                "colaborador_id": getattr(producto, "colaborador_id", None),
                 "notas_personalizacion": item.get("notas_personalizacion"),
             }
         )
@@ -71,7 +71,8 @@ def create_pedido(
             producto=d["producto"],
             cantidad=d["cantidad"],
             precio_unitario=d["precio_unitario"],
-            colaborador=d["colaborador"],
+            colaborador_id=d.get("colaborador_id"),
+            comision_pagada=False,
             notas_personalizacion=d.get("notas_personalizacion"),
         )
         # Restar del stock
@@ -90,86 +91,61 @@ def list_pedidos(skip: int = 0, limit: int = 50) -> List[Pedido]:
     return list(Pedido.select().offset(skip).limit(limit))
 
 
-
-
 def update_pedido(
     pedido_id: int,
     cliente_id: int,
     metodo_pago: str,
-    items: Sequence[dict],
-    direccion_entrega: str | None = None,
-    instrucciones_entrega: str | None = None,
+    estatus: str,
+    monto_total: float | None,
+    direccion_entrega: str | None,
+    instrucciones_entrega: str | None,
+    detalles: Sequence[dict],
 ) -> Optional[Pedido]:
-    """Reemplaza completamente un pedido (cliente, metodo_pago, detalles, direccion).
-    Devuelve el pedido actualizado o None si falla (cliente inexistente o falta stock).
-    """
     pedido = get_pedido(pedido_id)
     if not pedido:
         return None
 
-    # Validar cliente
     try:
         cliente = Cliente.get_by_id(cliente_id)
     except DoesNotExist:
         return None
 
-    # Guardar detalles viejos para devolver stock temporalmente
-    old_detalles = list(pedido.detalles)
-
     # Devolver stock de los detalles actuales antes de comprobar nuevos items
+    old_detalles = list(pedido.detalles)
     for d in old_detalles:
         ajustar_stock(d.producto.producto_id, d.cantidad)
 
     # Verificar disponibilidad de los nuevos items
-    nuevos_detalles_info = []
-    monto_total = 0
-    for item in items:
+    monto_total_calc = 0
+    for item in detalles:
         producto = get_producto(item["producto_id"])
-        if not producto:
-            # Revertir: volver a restar el stock antiguo (para dejar estado previo)
+        if not producto or producto.stock < item["cantidad"]:
+            # Revertir stock antiguo
             for od in old_detalles:
                 ajustar_stock(od.producto.producto_id, -od.cantidad)
             return None
-        cantidad = item.get("cantidad", 1)
-        if producto.stock < cantidad:
-            # Revertir saldo antiguo
-            for od in old_detalles:
-                ajustar_stock(od.producto.producto_id, -od.cantidad)
-            return None
-        subtotal = float(producto.precio) * cantidad
-        monto_total += subtotal
-        nuevos_detalles_info.append(
-            {
-                "producto": producto,
-                "cantidad": cantidad,
-                "precio_unitario": producto.precio,
-                "colaborador": producto.colaborador,
-                "notas_personalizacion": item.get("notas_personalizacion"),
-            }
-        )
+        monto_total_calc += float(item.get("precio_unitario", producto.precio)) * item["cantidad"]
 
-    # Si llegamos aquí, hay stock para los nuevos items.
-    # Borrar detalles antiguos y crear los nuevos (ya hemos repuesto stock viejo)
+    # Borrar detalles antiguos y crear los nuevos
     DetallePedido.delete().where(DetallePedido.pedido == pedido).execute()
-
-    for nd in nuevos_detalles_info:
+    for item in detalles:
         DetallePedido.create(
             pedido=pedido,
-            producto=nd["producto"],
-            cantidad=nd["cantidad"],
-            precio_unitario=nd["precio_unitario"],
-            colaborador=nd["colaborador"],
-            notas_personalizacion=nd.get("notas_personalizacion"),
+            producto=item["producto_id"],
+            cantidad=item["cantidad"],
+            precio_unitario=item.get("precio_unitario"),
+            colaborador=item.get("colaborador_id"),
+            notas_personalizacion=item.get("notas_personalizacion"),
+            comision_pagada=item.get("comision_pagada", False),
         )
-        # Restar stock por los nuevos items
-        ajustar_stock(nd["producto"].producto_id, -nd["cantidad"])
+        ajustar_stock(item["producto_id"], -item["cantidad"])
 
-    # Actualizar campos del pedido
     pedido.cliente = cliente
     pedido.metodo_pago = metodo_pago
+    pedido.estatus = estatus
     pedido.direccion_entrega = direccion_entrega
     pedido.instrucciones_entrega = instrucciones_entrega
-    pedido.monto_total = monto_total
+    pedido.monto_total = monto_total if monto_total is not None else monto_total_calc
     pedido.save()
     return pedido
 

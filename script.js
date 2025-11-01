@@ -338,6 +338,7 @@ const cache = {
   tallas: [],
   patrones: [],
   colaboradores: [],
+  productos: [],
 };
 
 // ========================================
@@ -1103,23 +1104,11 @@ class PanelControlPage {
                         </a>
                     </li>
                     <li class="sidebar-item">
-                        <a href="#" data-section="compras">
-                            <i class="bi bi-bag-check"></i>
-                            Compras
-                        </a>
-                    </li>
-                    <li class="sidebar-item">
                         <a href="#" data-section="inventario">
                             <i class="bi bi-box-seam"></i>
                             Inventario
                         </a>
                     </li>
-          <li class="sidebar-item">
-            <a href="#" data-section="ventas">
-              <i class="bi bi-graph-up"></i>
-              Detalle de Pedidos
-            </a>
-          </li>
                     <li class="sidebar-item">
                         <a href="#" data-section="clientes">
                             <i class="bi bi-people"></i>
@@ -1206,26 +1195,12 @@ class PanelControlPage {
                 </div>
 
                 <!-- Otras secciones -->
-                <div class="content-section" id="compras">
-                    <h2 class="mb-4">Compras</h2>
-                    <div class="admin-card">
-                        <p>Gestión de compras y proveedores</p>
-                    </div>
-                </div>
-
                 <div class="content-section" id="inventario">
                     <h2 class="mb-4">Inventario</h2>
                     <div class="admin-card">
                         <p>Control de stock y productos</p>
                     </div>
                 </div>
-
-        <div class="content-section" id="ventas">
-          <h2 class="mb-4">Detalle de Pedidos</h2>
-          <div class="admin-card">
-            <p>Detalle de pedidos y reportes</p>
-          </div>
-        </div>
 
                 <div class="content-section" id="clientes">
                     <h2 class="mb-4">Clientes</h2>
@@ -1242,49 +1217,52 @@ class PanelControlPage {
                 </div>
 
         <div class="content-section" id="productos">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2 class="mb-0">Productos</h2>
-            <div>
-              <button id="btnCrearProducto" class="btn btn-primary-custom">Crear Producto</button>
+          <div class="admin-section">
+            <div class="admin-header">
+              <h3>Gestión de Productos</h3>
+              <button id="btnCrearProducto" class="btn btn-primary-custom">
+                <i class="bi bi-plus-circle"></i> Nuevo Producto
+              </button>
             </div>
-          </div>
-
-          <div class="admin-card">
-            <div id="productosAdminContainer">
-              <table class="table table-dark table-hover">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Imagen</th>
-                    <th>Nombre</th>
-                    <th>Descripción</th>
-                    <th>Precio</th>
-                    <th>Stock</th>
-                    <th>Categoría</th>
-                    <th>Talla</th>
-                    <th>Color</th>
-                    <th>Género</th>
-                    <th>Tipo Prenda</th>
-                    <th>Patrón</th>
-                    <th>Es Colaboración</th>
-                    <th>Colaborador</th>
-                    <th>Detalle Colab.</th>
-                    <th>Sudadera Tipo</th>
-                    <th>Fecha Creación</th>
-                    <th>Activo</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody id="productosAdminTableBody"></tbody>
-              </table>
+            <div class="table-responsive">
+              <div id="productosAdminContainer">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th class="col-min text-center" style="max-width:60px;">ID</th>
+                      <th class="col-img text-center" style="max-width:80px;">Imagen</th>
+                      <th>Nombre</th>
+                      <th>Descripción</th>
+                      <th class="col-min text-center" style="max-width:80px;">Precio</th>
+                      <th class="col-min text-center" style="max-width:60px;">Stock</th>
+                      <th>Categoría</th>
+                      <th class="col-min text-center" style="max-width:80px;">Talla</th>
+                      <th>Color</th>
+                      <th>Género</th>
+                      <th>Tipo Prenda</th>
+                      <th class="col-min text-center" style="max-width:80px;">Patrón</th>
+                      <th class="col-min text-center" style="max-width:80px;">Es Colaboración</th>
+                      <th>Colaborador</th>
+                      <th>Detalle Colab.</th>
+                      <th>Sudadera Tipo</th>
+                      <th class="col-min text-center" style="max-width:100px;">Fecha Creación</th>
+                      <th class="col-min text-center" style="max-width:60px;">Activo</th>
+                      <th class="col-actions text-center" style="width:110px;">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="productosAdminTableBody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
 
                 <div class="content-section" id="pedidos">
-                    <h2 class="mb-4">Pedidos</h2>
-                    <div class="admin-card">
-                        <p>Seguimiento de pedidos</p>
+                    <div id="admin-pedidos-content">
+                        <h2 class="mb-4">Pedidos</h2>
+                        <div class="admin-card">
+                            <p>Cargando...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1319,7 +1297,12 @@ class PanelControlPage {
           } else if (sectionId === "clientes") {
             ClientesAdmin.renderTable().catch(() => {});
           } else if (sectionId === "pedidos") {
-            PedidosAdmin.renderSection().catch(() => {});
+            // Cargar referencias primero, luego la tabla de pedidos
+            References.loadReferences()
+              .then(() => PedidosAdmin.renderTable())
+              .catch((err) => {
+                console.error("Error al cargar pedidos:", err);
+              });
           } else {
             // limpiar contenedores auxiliares si existen
             const refContainer = document.getElementById(
@@ -1369,16 +1352,18 @@ class References {
   // Cargar referencias principales y almacenarlas en cache
   static async loadReferences() {
     try {
-      const [cats, tallas, patrones, cols] = await Promise.all([
+      const [cats, tallas, patrones, cols, prods] = await Promise.all([
         API.fetch("/categorias?limit=200"),
         API.fetch("/tallas?limit=200"),
         API.fetch("/patrones?limit=200"),
         API.fetch("/colaboradores?limit=200"),
+        API.fetch("/productos?limit=500"),
       ]);
       cache.categorias = cats.items || [];
       cache.tallas = tallas.items || [];
       cache.patrones = patrones.items || [];
       cache.colaboradores = cols.items || [];
+      cache.productos = prods.items || [];
     } catch (err) {
       console.warn(
         "No se pudieron cargar referencias desde la API:",
@@ -1408,33 +1393,37 @@ class References {
 
     for (const r of resources) {
       const section = document.createElement("section");
-      section.className = "reference-section";
+      section.className = "admin-section";
       section.style.marginBottom = "18px";
+
+      const header = document.createElement("div");
+      header.className = "admin-header";
 
       const h = document.createElement("h3");
       h.textContent = r.title;
-      section.appendChild(h);
+      header.appendChild(h);
 
       const addBtn = document.createElement("button");
-      addBtn.className = "btn btn-primary-custom btn-sm";
-      addBtn.textContent = "Añadir " + r.title.slice(0, -1);
-      addBtn.style.marginBottom = "8px";
+      addBtn.className = "btn btn-primary-custom";
+      addBtn.innerHTML = `<i class="bi bi-plus-circle"></i> Añadir ${r.title.slice(
+        0,
+        -1
+      )}`;
       addBtn.addEventListener("click", () =>
         References.showCreateEditForm(r.key)
       );
-      section.appendChild(addBtn);
+      header.appendChild(addBtn);
+      section.appendChild(header);
 
-      const card = document.createElement("div");
-      card.className = "admin-card mt-2";
       const tableWrapper = document.createElement("div");
+      tableWrapper.className = "table-responsive";
       tableWrapper.id = `${r.key}AdminContainer`;
 
       const table = document.createElement("table");
-      table.className = "table table-dark table-hover reference-table";
+      table.className = "admin-table reference-table";
       table.dataset.resource = r.key;
       tableWrapper.appendChild(table);
-      card.appendChild(tableWrapper);
-      section.appendChild(card);
+      section.appendChild(tableWrapper);
       container.appendChild(section);
     }
 
@@ -1482,49 +1471,61 @@ class References {
     let rowsHtml = "";
 
     if (resource === "tallas") {
-      theadHtml = `<tr><th>ID</th><th>Nombre</th><th>Acciones</th></tr>`;
+      theadHtml = `<tr><th class="col-min text-center" style="max-width:60px;">ID</th><th>Nombre</th><th class="col-actions text-center" style="width:110px;">Acciones</th></tr>`;
       rowsHtml = items
         .map(
           (it) => `
         <tr data-id="${it.talla_id}">
-          <td>${it.talla_id}</td>
+          <td class="col-min text-center">${it.talla_id}</td>
           <td>${Utils.escapeHtml(it.nombre_talla)}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-light me-2 edit-ref">Editar</button>
-            <button class="btn btn-sm btn-danger del-ref">Eliminar</button>
+          <td class="col-actions text-center">
+            <button class="btn btn-warning btn-sm edit-ref" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-danger btn-sm del-ref" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
           </td>
         </tr>`
         )
         .join("");
     } else if (resource === "patrones") {
-      theadHtml = `<tr><th>ID</th><th>Código</th><th>Nombre</th><th>Descripción</th><th>Acciones</th></tr>`;
+      theadHtml = `<tr><th class="col-min text-center" style="max-width:60px;">ID</th><th>Código</th><th>Nombre</th><th>Descripción</th><th class="col-actions text-center" style="width:110px;">Acciones</th></tr>`;
       rowsHtml = items
         .map(
           (it) => `
         <tr data-id="${it.patron_id}">
-          <td>${it.patron_id}</td>
+          <td class="col-min text-center">${it.patron_id}</td>
           <td>${Utils.escapeHtml(it.codigo_patron)}</td>
           <td>${Utils.escapeHtml(it.nombre_patron)}</td>
           <td>${Utils.escapeHtml(it.descripcion || "")}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-light me-2 edit-ref">Editar</button>
-            <button class="btn btn-sm btn-danger del-ref">Eliminar</button>
+          <td class="col-actions text-center">
+            <button class="btn btn-warning btn-sm edit-ref" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-danger btn-sm del-ref" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
           </td>
         </tr>`
         )
         .join("");
     } else if (resource === "categorias") {
-      theadHtml = `<tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Acciones</th></tr>`;
+      theadHtml = `<tr><th class="col-min text-center" style="max-width:60px;">ID</th><th>Nombre</th><th>Descripción</th><th class="col-actions text-center" style="width:110px;">Acciones</th></tr>`;
       rowsHtml = items
         .map(
           (it) => `
         <tr data-id="${it.categoria_id}">
-          <td>${it.categoria_id}</td>
+          <td class="col-min text-center">${it.categoria_id}</td>
           <td>${Utils.escapeHtml(it.nombre)}</td>
           <td>${Utils.escapeHtml(it.descripcion || "")}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-light me-2 edit-ref">Editar</button>
-            <button class="btn btn-sm btn-danger del-ref">Eliminar</button>
+          <td class="col-actions text-center">
+            <button class="btn btn-warning btn-sm edit-ref" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-danger btn-sm del-ref" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
           </td>
         </tr>`
         )
@@ -1774,7 +1775,7 @@ class ProductsAdmin {
     const tbody = document.getElementById("productosAdminTableBody");
     if (!tbody) return;
     if (!items.length) {
-      tbody.innerHTML = `<tr><td colspan="19">No hay productos</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="19" class="text-center">No hay productos registrados</td></tr>`;
       return;
     }
     const rows = items.map((p) => {
@@ -1844,33 +1845,37 @@ class ProductsAdmin {
 
       return `
       <tr>
-        <td>${id}</td>
-        <td>
-          ${
-            url_imagen
-              ? `<img src="${url_imagen}" alt="img-${id}" style="max-width:60px;max-height:60px;object-fit:cover">`
-              : "-"
-          }
-        </td>
+        <td class="col-min text-center">${id}</td>
+        <td class="col-img text-center">${
+          url_imagen
+            ? `<img src="${url_imagen}" alt="img-${id}" style="max-width:60px;max-height:60px;object-fit:cover">`
+            : "-"
+        }</td>
         <td>${Utils.escapeHtml(nombre)}</td>
         <td>${Utils.escapeHtml(descripcion)}</td>
-        <td>$${precio}</td>
-        <td>${stock}</td>
+        <td class="col-min text-center">$${precio}</td>
+        <td class="col-min text-center">${stock}</td>
         <td>${Utils.escapeHtml(categoriaName)}</td>
-        <td>${Utils.escapeHtml(tallaName)}</td>
+        <td class="col-min text-center">${Utils.escapeHtml(tallaName)}</td>
         <td>${Utils.escapeHtml(color)}</td>
         <td>${Utils.escapeHtml(genero)}</td>
         <td>${Utils.escapeHtml(tipo_prenda)}</td>
-        <td>${Utils.escapeHtml(patronName)}</td>
-        <td>${Utils.escapeHtml(es_colaboracion)}</td>
+        <td class="col-min text-center">${Utils.escapeHtml(patronName)}</td>
+        <td class="col-min text-center">${Utils.escapeHtml(
+          es_colaboracion
+        )}</td>
         <td>${Utils.escapeHtml(colaboradorName)}</td>
         <td>${Utils.escapeHtml(detalle_colaboracion)}</td>
         <td>${Utils.escapeHtml(sudadera_tipo)}</td>
-        <td>${Utils.escapeHtml(fecha_creacion)}</td>
-        <td>${Utils.escapeHtml(activo)}</td>
-        <td>
-          <button class="btn btn-sm btn-outline-light me-2" onclick="openProductForm(${id})">Editar</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteProduct(${id})">Eliminar</button>
+        <td class="col-min text-center">${Utils.escapeHtml(fecha_creacion)}</td>
+        <td class="col-min text-center">${Utils.escapeHtml(activo)}</td>
+        <td class="col-actions text-center">
+          <button class="btn btn-warning btn-sm" onclick="openProductForm(${id})" title="Editar">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct(${id})" title="Eliminar">
+            <i class="bi bi-trash"></i>
+          </button>
         </td>
       </tr>`;
     });
@@ -1956,6 +1961,19 @@ class ProductsAdmin {
                   </select>
                 </div>
                 <div class="col-md-4 mb-3">
+                  <label class="form-label">Color</label>
+                  <input id="color" class="form-control form-control-dark" maxlength="50">
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Género</label>
+                  <select id="genero" class="form-control form-control-dark">
+                    <option value="">N/A</option>
+                    <option value="Hombre">Hombre</option>
+                    <option value="Mujer">Mujer</option>
+                    <option value="Unisex">Unisex</option>
+                  </select>
+                </div>
+                <div class="col-md-4 mb-3">
                   <label class="form-label">Tipo Prenda</label>
                   <select id="tipo_prenda" class="form-control form-control-dark">
                     <option value="">N/A</option>
@@ -2022,18 +2040,6 @@ class ProductsAdmin {
     const selectPatron = modalEl.querySelector("#patron_id");
     const selectColaborador = modalEl.querySelector("#colaborador_id");
 
-    selectCat.innerHTML = cache.categorias
-      .map(
-        (c) =>
-          `<option value="${c.categoria_id}">${Utils.escapeHtml(
-            References.displayNameFor
-              ? References.displayNameFor(c)
-              : c.nombre || ""
-          )}</option>`
-      )
-      .join("");
-    // (displayNameFor used earlier; here we have Utils.displayNameFor)
-    // Use Utils.displayNameFor to be consistent
     selectCat.innerHTML = cache.categorias
       .map(
         (c) =>
@@ -2227,23 +2233,27 @@ class ColaboradoresAdmin {
     const container = document.createElement("div");
     container.id = "colaboradores-table-container";
     container.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">Colaboradores</h4>
-        <button id="btnCrearColaborador" class="btn btn-primary-custom">Crear Colaborador</button>
-      </div>
-      <div>
-        <table class="table table-dark table-hover" id="colaboradoresTable">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Contacto</th>
-              <th>Detalle Acuerdo</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="colaboradoresTableBody"></tbody>
-        </table>
+      <div class="admin-section">
+        <div class="admin-header">
+          <h3>Gestión de Colaboradores</h3>
+          <button id="btnCrearColaborador" class="btn btn-primary-custom">
+            <i class="bi bi-plus-circle"></i> Nuevo Colaborador
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table" id="colaboradoresTable">
+            <thead>
+              <tr>
+                <th class="col-min text-center" style="max-width:60px;">ID</th>
+                <th>Nombre</th>
+                <th>Contacto</th>
+                <th>Detalle Acuerdo</th>
+                <th class="col-actions text-center" style="width:110px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="colaboradoresTableBody"></tbody>
+          </table>
+        </div>
       </div>
     `;
 
@@ -2266,20 +2276,24 @@ class ColaboradoresAdmin {
       const items = await API.fetchReference("colaboradores");
       cache.colaboradores = items;
       if (!items.length) {
-        tbody.innerHTML = `<tr><td colspan="5">No hay colaboradores</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center">No hay colaboradores registrados</td></tr>`;
         return;
       }
       tbody.innerHTML = items
         .map(
           (c) => `
         <tr data-id="${c.colaborador_id}">
-          <td>${c.colaborador_id}</td>
+          <td class="col-min text-center">${c.colaborador_id}</td>
           <td>${Utils.escapeHtml(c.nombre)}</td>
           <td>${Utils.escapeHtml(c.contacto || "")}</td>
           <td>${Utils.escapeHtml(c.detalle_acuerdo || "")}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-light me-2 edit-col">Editar</button>
-            <button class="btn btn-sm btn-danger del-col">Eliminar</button>
+          <td class="col-actions text-center">
+            <button class="btn btn-warning btn-sm edit-col" title="Editar">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-danger btn-sm del-col" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
           </td>
         </tr>`
         )
@@ -2328,27 +2342,31 @@ class ClientesAdmin {
     const container = document.createElement("div");
     container.id = "clientes-table-container";
     container.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">Clientes</h4>
-        <button id="btnCrearCliente" class="btn btn-primary-custom">Crear Cliente</button>
-      </div>
-      <div>
-        <table class="table table-dark table-hover" id="clientesTable">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Teléfono</th>
-              <th>Email</th>
-              <th>Dirección</th>
-              <th>Usuario</th>
-              <th>Contraseña</th>
-              <th>Es Admin</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="clientesTableBody"></tbody>
-        </table>
+      <div class="admin-section">
+        <div class="admin-header">
+          <h3>Gestión de Clientes</h3>
+          <button id="btnCrearCliente" class="btn btn-primary-custom">
+            <i class="bi bi-plus-circle"></i> Nuevo Cliente
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table" id="clientesTable">
+            <thead>
+              <tr>
+                <th class="col-min text-center" style="max-width:60px;">ID</th>
+                <th>Nombre</th>
+                <th>Teléfono</th>
+                <th>Email</th>
+                <th>Dirección</th>
+                <th>Usuario</th>
+                <th>Contraseña</th>
+                <th>Es Admin</th>
+                <th class="col-actions text-center" style="width:110px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="clientesTableBody"></tbody>
+          </table>
+        </div>
       </div>
     `;
 
@@ -2373,7 +2391,7 @@ class ClientesAdmin {
       const items = res.items || [];
       window.clientesCache = items;
       if (!items.length) {
-        tbody.innerHTML = `<tr><td colspan="9">No hay clientes</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center">No hay clientes registrados</td></tr>`;
         return;
       }
       tbody.innerHTML = items
@@ -2381,7 +2399,7 @@ class ClientesAdmin {
           const id = c.cliente_id ?? c.id ?? "";
           return `
             <tr data-id="${id}">
-              <td>${id}</td>
+              <td class="col-min text-center">${id}</td>
               <td>${Utils.escapeHtml(c.nombre || "")}</td>
               <td>${Utils.escapeHtml(c.telefono || "")}</td>
               <td>${Utils.escapeHtml(c.email || "")}</td>
@@ -2389,7 +2407,7 @@ class ClientesAdmin {
               <td>${Utils.escapeHtml(c.usuario || "")}</td>
               <td>${Utils.escapeHtml(c.password || "")}</td>
               <td>${Utils.escapeHtml(c.es_admin ? "Sí" : "No")}</td>
-              <td>
+              <td class="col-actions text-center">
                 <button class="btn btn-sm btn-outline-light me-2" onclick="openClienteForm(${id})">Editar</button>
                 <button class="btn btn-sm btn-danger" onclick="deleteCliente(${id})">Eliminar</button>
               </td>
@@ -2536,6 +2554,697 @@ class ClientesAdmin {
 // Exponer proxies globales para compatibilidad
 window.openClienteForm = (id) => ClientesAdmin.openClienteForm(id);
 window.deleteCliente = (id) => ClientesAdmin.deleteCliente(id);
+
+// ========================================
+// SUBMODULO: Pedidos (admin CRUD completo con detalles)
+// ========================================
+class PedidosAdmin {
+  static async renderTable() {
+    const container = document.getElementById("admin-pedidos-content");
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="admin-section">
+        <div class="admin-header">
+          <h3>Gestión de Pedidos</h3>
+          <button class="btn btn-primary-custom" onclick="openPedidoForm()">
+            <i class="bi bi-plus-circle"></i> Nuevo Pedido
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table" id="pedidos-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Método Pago</th>
+                <th>Estatus</th>
+                <th>Monto Total</th>
+                <th>Items</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="8" class="text-center">Cargando pedidos...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    await this.refreshTable();
+  }
+
+  static async refreshTable() {
+    try {
+      const pedidos = await API.fetchReference("pedidos");
+      const clientes = await API.fetchReference("clientes");
+      const tbody = document.querySelector("#pedidos-table tbody");
+
+      if (!tbody) return;
+
+      if (!pedidos || pedidos.length === 0) {
+        tbody.innerHTML =
+          '<tr><td colspan="8" class="text-center">No hay pedidos registrados</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = pedidos
+        .map((p) => {
+          const cliente = clientes.find((c) => c.cliente_id === p.cliente_id);
+          const clienteNombre = cliente
+            ? `${cliente.nombre} ${cliente.apellido}`
+            : `ID: ${p.cliente_id}`;
+          const fecha = new Date(p.fecha_pedido).toLocaleDateString();
+          const numItems = p.detalles ? p.detalles.length : 0;
+
+          return `
+            <tr>
+              <td>${p.pedido_id}</td>
+              <td>${Utils.escapeHtml(clienteNombre)}</td>
+              <td>${fecha}</td>
+              <td>${Utils.escapeHtml(p.metodo_pago)}</td>
+              <td><span class="badge badge-${this._getStatusColor(
+                p.estatus
+              )}">${Utils.escapeHtml(p.estatus)}</span></td>
+              <td>$${parseFloat(p.monto_total).toFixed(2)}</td>
+              <td>${numItems}</td>
+              <td class="actions">
+                <button class="btn btn-info btn-sm" onclick="viewPedidoDetalles(${
+                  p.pedido_id
+                })" title="Ver Detalles">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <button class="btn btn-warning btn-sm" onclick="openPedidoForm(${
+                  p.pedido_id
+                })" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deletePedido(${
+                  p.pedido_id
+                })" title="Eliminar">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+    } catch (error) {
+      console.error("Error al cargar pedidos:", error);
+      const tbody = document.querySelector("#pedidos-table tbody");
+      if (tbody) {
+        tbody.innerHTML =
+          '<tr><td colspan="8" class="text-center text-danger">Error al cargar pedidos</td></tr>';
+      }
+    }
+  }
+
+  static _getStatusColor(estatus) {
+    const status = estatus.toUpperCase();
+    if (status.includes("PAGAR")) return "warning";
+    if (status.includes("PAGADO") || status.includes("COMPLETADO"))
+      return "success";
+    if (status.includes("CANCELADO")) return "danger";
+    if (status.includes("ENTREGADO")) return "info";
+    return "secondary";
+  }
+
+  static async openPedidoForm(pedidoId = null) {
+    const isEdit = pedidoId !== null;
+    let pedido = null;
+    let detallesData = [];
+
+    // Cargar datos si es edición
+    if (isEdit) {
+      try {
+        pedido = await API.fetch(`/pedidos/${pedidoId}`);
+        detallesData = pedido.detalles || [];
+      } catch (error) {
+        alert("Error al cargar el pedido");
+        return;
+      }
+    }
+
+    // Cargar referencias necesarias y actualizar el cache
+    const clientes = await API.fetchReference("clientes");
+    const productos = await API.fetchReference("productos");
+    const colaboradores = await API.fetchReference("colaboradores");
+
+    console.log("Clientes cargados:", clientes.length);
+    console.log("Productos cargados:", productos.length);
+    console.log("Colaboradores cargados:", colaboradores.length);
+
+    // Actualizar cache de productos para que estén disponibles en addDetalleRow
+    cache.productos = productos;
+    cache.colaboradores = colaboradores;
+
+    // También almacenar en variables globales temporales para el formulario actual
+    window._pedidoFormProductos = productos;
+    window._pedidoFormColaboradores = colaboradores;
+
+    const modalHTML = `
+      <div class="modal-overlay" id="pedido-modal">
+        <div class="modal-content modal-large">
+          <div class="modal-header">
+            <h3>${isEdit ? "Editar Pedido" : "Nuevo Pedido"}</h3>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="pedido-form" class="admin-form">
+              <input type="hidden" id="pedido_id" value="${
+                pedido?.pedido_id || 0
+              }">
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="cliente_id">Cliente *</label>
+                  <select id="cliente_id" required>
+                    <option value="">Seleccionar cliente...</option>
+                    ${clientes
+                      .map(
+                        (c) => `
+                      <option value="${c.cliente_id}" ${
+                          pedido?.cliente_id === c.cliente_id ? "selected" : ""
+                        }>
+                        ${Utils.escapeHtml(c.nombre)} ${Utils.escapeHtml(
+                          c.apellido
+                        )} - ${Utils.escapeHtml(c.email)}
+                      </option>
+                    `
+                      )
+                      .join("")}
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <label for="fecha_pedido">Fecha Pedido *</label>
+                  <input type="datetime-local" id="fecha_pedido" required
+                    value="${
+                      pedido
+                        ? new Date(pedido.fecha_pedido)
+                            .toISOString()
+                            .slice(0, 16)
+                        : new Date().toISOString().slice(0, 16)
+                    }">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="metodo_pago">Método de Pago *</label>
+                  <select id="metodo_pago" required>
+                    <option value="EFECTIVO" ${
+                      pedido?.metodo_pago === "EFECTIVO" ? "selected" : ""
+                    }>Efectivo</option>
+                    <option value="DEPOSITO" ${
+                      pedido?.metodo_pago === "DEPOSITO" ? "selected" : ""
+                    }>Depósito</option>
+                    <option value="transferencia" ${
+                      pedido?.metodo_pago === "transferencia" ? "selected" : ""
+                    }>Transferencia</option>
+                    <option value="TARJETA" ${
+                      pedido?.metodo_pago === "TARJETA" ? "selected" : ""
+                    }>Tarjeta</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="estatus">Estatus *</label>
+                  <select id="estatus" required>
+                    <option value="POR PAGAR" ${
+                      pedido?.estatus === "POR PAGAR" ? "selected" : ""
+                    }>Por Pagar</option>
+                    <option value="PENDIENTE" ${
+                      pedido?.estatus === "PENDIENTE" ? "selected" : ""
+                    }>Pendiente</option>
+                    <option value="PAGADO" ${
+                      pedido?.estatus === "PAGADO" ? "selected" : ""
+                    }>Pagado</option>
+                    <option value="EN PROCESO" ${
+                      pedido?.estatus === "EN PROCESO" ? "selected" : ""
+                    }>En Proceso</option>
+                    <option value="ENVIADO" ${
+                      pedido?.estatus === "ENVIADO" ? "selected" : ""
+                    }>Enviado</option>
+                    <option value="ENTREGADO" ${
+                      pedido?.estatus === "ENTREGADO" ? "selected" : ""
+                    }>Entregado</option>
+                    <option value="CANCELADO" ${
+                      pedido?.estatus === "CANCELADO" ? "selected" : ""
+                    }>Cancelado</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="monto_total">Monto Total</label>
+                  <input type="number" id="monto_total" step="0.01" min="0" 
+                    value="${pedido?.monto_total || 0}" 
+                    placeholder="Se calculará automáticamente">
+                  <small>Dejar en 0 para cálculo automático</small>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="direccion_entrega">Dirección de Entrega</label>
+                <textarea id="direccion_entrega" rows="2">${
+                  pedido?.direccion_entrega || ""
+                }</textarea>
+              </div>
+
+              <div class="form-group">
+                <label for="instrucciones_entrega">Instrucciones de Entrega</label>
+                <textarea id="instrucciones_entrega" rows="2">${
+                  pedido?.instrucciones_entrega || ""
+                }</textarea>
+              </div>
+
+              <hr>
+              
+              <div class="detalles-section">
+                <div class="admin-header">
+                  <h4>Detalles del Pedido</h4>
+                  <button type="button" class="btn btn-primary-custom btn-sm" onclick="PedidosAdmin.addDetalleRow()">
+                    <i class="bi bi-plus-circle"></i> Agregar Item
+                  </button>
+                </div>
+                
+                <div id="detalles-container">
+                  ${
+                    detallesData.length > 0
+                      ? ""
+                      : '<p class="text-muted">No hay items. Haz clic en "Agregar Item" para comenzar.</p>'
+                  }
+                </div>
+              </div>
+
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
+                <button type="submit" class="btn btn-primary-custom">
+                  ${isEdit ? "Actualizar Pedido" : "Crear Pedido"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
+
+    // Cargar detalles si es edición
+    if (detallesData.length > 0) {
+      detallesData.forEach((detalle) => {
+        this.addDetalleRow(detalle, productos, colaboradores);
+      });
+    }
+
+    // Submit handler
+    document
+      .getElementById("pedido-form")
+      .addEventListener("submit", async (e) => {
+        e.preventDefault();
+        await this.submitPedidoForm();
+      });
+  }
+
+  static addDetalleRow(
+    detalle = null,
+    productosData = null,
+    colaboradoresData = null
+  ) {
+    const container = document.getElementById("detalles-container");
+    // Primero intentar usar datos pasados, luego variables globales temporales, finalmente el cache
+    const productos =
+      productosData || window._pedidoFormProductos || cache.productos || [];
+    const colaboradores =
+      colaboradoresData ||
+      window._pedidoFormColaboradores ||
+      cache.colaboradores ||
+      [];
+
+    console.log("Productos disponibles:", productos.length);
+    console.log("Colaboradores disponibles:", colaboradores.length);
+
+    if (productos.length === 0) {
+      console.warn("No hay productos cargados en el cache");
+      alert(
+        "Error: No se han cargado los productos. Por favor, recarga la página e intenta nuevamente."
+      );
+      return;
+    }
+
+    // Limpiar mensaje de "no hay items"
+    const emptyMsg = container.querySelector("p.text-muted");
+    if (emptyMsg) emptyMsg.remove();
+
+    const detalleId = detalle?.detalle_id || 0;
+    const rowId = `detalle-row-${Date.now()}-${Math.random()}`;
+
+    const rowHTML = `
+      <div class="detalle-row" id="${rowId}" data-detalle-id="${detalleId}">
+        <div class="detalle-card">
+          <button type="button" class="btn btn-danger btn-sm detalle-remove" onclick="this.closest('.detalle-row').remove()">
+            <i class="bi bi-x-circle"></i>
+          </button>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Producto *</label>
+              <select class="detalle-producto" required>
+                <option value="">Seleccionar producto...</option>
+                ${productos
+                  .map(
+                    (p) => `
+                  <option value="${p.producto_id}" data-precio="${p.precio}" ${
+                      detalle?.producto_id === p.producto_id ? "selected" : ""
+                    }>
+                    ${Utils.escapeHtml(
+                      p.nombre_producto || p.nombre || "Sin nombre"
+                    )} - $${p.precio} (Stock: ${p.stock})
+                  </option>
+                `
+                  )
+                  .join("")}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Cantidad *</label>
+              <input type="number" class="detalle-cantidad" min="1" value="${
+                detalle?.cantidad || 1
+              }" required>
+            </div>
+
+            <div class="form-group">
+              <label>Precio Unitario *</label>
+              <input type="number" class="detalle-precio" step="0.01" min="0" value="${
+                detalle?.precio_unitario || 0
+              }" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Colaborador</label>
+              <select class="detalle-colaborador">
+                <option value="">Sin colaborador</option>
+                ${colaboradores
+                  .map(
+                    (c) => `
+                  <option value="${c.colaborador_id}" ${
+                      detalle?.colaborador_id === c.colaborador_id
+                        ? "selected"
+                        : ""
+                    }>
+                    ${Utils.escapeHtml(c.nombre)} ${Utils.escapeHtml(
+                      c.apellido
+                    )}
+                  </option>
+                `
+                  )
+                  .join("")}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Comisión Pagada</label>
+              <input type="checkbox" class="detalle-comision" ${
+                detalle?.comision_pagada ? "checked" : ""
+              }>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Notas de Personalización</label>
+            <textarea class="detalle-notas" rows="2">${
+              detalle?.notas_personalizacion || ""
+            }</textarea>
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.insertAdjacentHTML("beforeend", rowHTML);
+
+    // Auto-actualizar precio cuando cambia el producto
+    const row = document.getElementById(rowId);
+    const selectProducto = row.querySelector(".detalle-producto");
+    const inputPrecio = row.querySelector(".detalle-precio");
+
+    selectProducto.addEventListener("change", (e) => {
+      const selectedOption = e.target.options[e.target.selectedIndex];
+      const precio = selectedOption.getAttribute("data-precio");
+      if (precio) {
+        inputPrecio.value = precio;
+      }
+    });
+  }
+
+  static async submitPedidoForm() {
+    const pedidoId = parseInt(document.getElementById("pedido_id").value);
+    const isEdit = pedidoId > 0;
+
+    // Recolectar datos del formulario
+    const formData = {
+      pedido_id: pedidoId,
+      cliente_id: parseInt(document.getElementById("cliente_id").value),
+      fecha_pedido: document.getElementById("fecha_pedido").value,
+      metodo_pago: document.getElementById("metodo_pago").value,
+      estatus: document.getElementById("estatus").value,
+      monto_total:
+        parseFloat(document.getElementById("monto_total").value) || null,
+      direccion_entrega:
+        document.getElementById("direccion_entrega").value || null,
+      instrucciones_entrega:
+        document.getElementById("instrucciones_entrega").value || null,
+      detalles: [],
+    };
+
+    // Recolectar detalles
+    const detalleRows = document.querySelectorAll(".detalle-row");
+    if (detalleRows.length === 0) {
+      alert("Debe agregar al menos un item al pedido");
+      return;
+    }
+
+    detalleRows.forEach((row) => {
+      const detalleId = parseInt(row.getAttribute("data-detalle-id")) || 0;
+      const productoId = parseInt(row.querySelector(".detalle-producto").value);
+      const cantidad = parseInt(row.querySelector(".detalle-cantidad").value);
+      const precioUnitario = parseFloat(
+        row.querySelector(".detalle-precio").value
+      );
+      const colaboradorId = row.querySelector(".detalle-colaborador").value;
+      const comisionPagada = row.querySelector(".detalle-comision").checked;
+      const notas = row.querySelector(".detalle-notas").value;
+
+      formData.detalles.push({
+        detalle_id: detalleId,
+        producto_id: productoId,
+        cantidad: cantidad,
+        precio_unitario: precioUnitario,
+        colaborador_id: colaboradorId ? parseInt(colaboradorId) : null,
+        comision_pagada: comisionPagada,
+        notas_personalizacion: notas || null,
+      });
+    });
+
+    try {
+      if (isEdit) {
+        await API.updateReference("pedidos", pedidoId, formData);
+        alert("Pedido actualizado exitosamente");
+      } else {
+        await API.createReference("pedidos", formData);
+        alert("Pedido creado exitosamente");
+      }
+
+      document.getElementById("pedido-modal").remove();
+      await this.refreshTable();
+    } catch (error) {
+      console.error("Error al guardar pedido:", error);
+      alert(
+        `Error al guardar el pedido: ${error.message || "Error desconocido"}`
+      );
+    }
+  }
+
+  static async viewPedidoDetalles(pedidoId) {
+    try {
+      const pedido = await API.fetch(`/pedidos/${pedidoId}`);
+      const clientes = await API.fetchReference("clientes");
+      const productos = await API.fetchReference("productos");
+      const colaboradores = await API.fetchReference("colaboradores");
+
+      const cliente = clientes.find((c) => c.cliente_id === pedido.cliente_id);
+      const clienteNombre = cliente
+        ? `${cliente.nombre} ${cliente.apellido}`
+        : `ID: ${pedido.cliente_id}`;
+
+      const modalHTML = `
+        <div class="modal-overlay" id="pedido-detalles-modal">
+          <div class="modal-content modal-large">
+            <div class="modal-header">
+              <h3>Detalles del Pedido #${pedido.pedido_id}</h3>
+              <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="pedido-info-grid">
+                <div class="info-group">
+                  <label>Cliente:</label>
+                  <span>${Utils.escapeHtml(clienteNombre)}</span>
+                </div>
+                <div class="info-group">
+                  <label>Fecha:</label>
+                  <span>${new Date(pedido.fecha_pedido).toLocaleString()}</span>
+                </div>
+                <div class="info-group">
+                  <label>Método de Pago:</label>
+                  <span>${Utils.escapeHtml(pedido.metodo_pago)}</span>
+                </div>
+                <div class="info-group">
+                  <label>Estatus:</label>
+                  <span class="badge badge-${this._getStatusColor(
+                    pedido.estatus
+                  )}">${Utils.escapeHtml(pedido.estatus)}</span>
+                </div>
+                <div class="info-group">
+                  <label>Monto Total:</label>
+                  <span class="text-success font-weight-bold">$${parseFloat(
+                    pedido.monto_total
+                  ).toFixed(2)}</span>
+                </div>
+              </div>
+
+              ${
+                pedido.direccion_entrega
+                  ? `
+                <div class="info-group mt-3">
+                  <label>Dirección de Entrega:</label>
+                  <p>${Utils.escapeHtml(pedido.direccion_entrega)}</p>
+                </div>
+              `
+                  : ""
+              }
+
+              ${
+                pedido.instrucciones_entrega
+                  ? `
+                <div class="info-group">
+                  <label>Instrucciones:</label>
+                  <p>${Utils.escapeHtml(pedido.instrucciones_entrega)}</p>
+                </div>
+              `
+                  : ""
+              }
+
+              <hr>
+
+              <h4>Items del Pedido</h4>
+              <div class="table-responsive">
+                <table class="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Cantidad</th>
+                      <th>Precio Unit.</th>
+                      <th>Subtotal</th>
+                      <th>Colaborador</th>
+                      <th>Comisión</th>
+                      <th>Notas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${pedido.detalles
+                      .map((d) => {
+                        const producto = productos.find(
+                          (p) => p.producto_id === d.producto_id
+                        );
+                        const colaborador = colaboradores.find(
+                          (c) => c.colaborador_id === d.colaborador_id
+                        );
+                        const subtotal = d.cantidad * d.precio_unitario;
+
+                        return `
+                        <tr>
+                          <td>${
+                            producto
+                              ? Utils.escapeHtml(producto.nombre)
+                              : `ID: ${d.producto_id}`
+                          }</td>
+                          <td>${d.cantidad}</td>
+                          <td>$${parseFloat(d.precio_unitario).toFixed(2)}</td>
+                          <td>$${subtotal.toFixed(2)}</td>
+                          <td>${
+                            colaborador
+                              ? `${Utils.escapeHtml(
+                                  colaborador.nombre
+                                )} ${Utils.escapeHtml(colaborador.apellido)}`
+                              : "-"
+                          }</td>
+                          <td>${
+                            d.comision_pagada
+                              ? '<span class="badge badge-success">Sí</span>'
+                              : '<span class="badge badge-secondary">No</span>'
+                          }</td>
+                          <td>${
+                            d.notas_personalizacion
+                              ? Utils.escapeHtml(d.notas_personalizacion)
+                              : "-"
+                          }</td>
+                        </tr>
+                      `;
+                      })
+                      .join("")}
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cerrar</button>
+                <button class="btn btn-primary-custom" onclick="this.closest('.modal-overlay').remove(); openPedidoForm(${pedidoId})">
+                  <i class="bi bi-pencil"></i> Editar Pedido
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML("beforeend", modalHTML);
+    } catch (error) {
+      console.error("Error al cargar detalles:", error);
+      alert("Error al cargar los detalles del pedido");
+    }
+  }
+
+  static async deletePedido(pedidoId) {
+    if (
+      !confirm(
+        "¿Está seguro de eliminar este pedido? Esta acción no se puede deshacer y devolverá el stock de los productos."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await API.deleteReference("pedidos", pedidoId);
+      alert("Pedido eliminado exitosamente");
+      await this.refreshTable();
+    } catch (error) {
+      console.error("Error al eliminar pedido:", error);
+      alert("Error al eliminar el pedido");
+    }
+  }
+}
+
+// Exponer proxies globales para compatibilidad
+window.openPedidoForm = (id) => PedidosAdmin.openPedidoForm(id);
+window.viewPedidoDetalles = (id) => PedidosAdmin.viewPedidoDetalles(id);
+window.deletePedido = (id) => PedidosAdmin.deletePedido(id);
 
 // ========================================
 // Inicialización global

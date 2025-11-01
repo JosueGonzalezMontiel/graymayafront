@@ -7,7 +7,7 @@ pedido se crea se descuenta el inventario de los productos; si se
 cancela, se devuelve el stock automáticamente.
 """
 
-from typing import List
+from typing import List, Union
 
 from fastapi import APIRouter, HTTPException, Query, Security
 
@@ -18,11 +18,11 @@ from app.repositories.pedido_repo import (
     list_pedidos,
     update_pedido,
     delete_pedido,
-    
 )
 from app.schemas.pedido import (
     PedidoCreate,
     PedidoOut,
+    PedidoUpdate,  # usamos su estructura con "detalles"
 )
 
 
@@ -34,17 +34,37 @@ router = APIRouter(
 
 
 @router.post("", response_model=PedidoOut, status_code=201)
-def create_pedido_endpoint(payload: PedidoCreate):
-    """Crea un pedido nuevo, con sus detalles, y actualiza el inventario."""
+def create_pedido_endpoint(payload: Union[PedidoCreate, PedidoUpdate]):
+    """Crea un pedido. Acepta cuerpo con 'items' (PedidoCreate) o con 'detalles' (PedidoUpdate)."""
+    if isinstance(payload, PedidoCreate):
+        items = [item.model_dump() for item in payload.items]
+        direccion_entrega = payload.direccion_entrega
+        instrucciones_entrega = payload.instrucciones_entrega
+        cliente_id = payload.cliente_id
+        metodo_pago = payload.metodo_pago
+    else:
+        # Normaliza desde 'detalles' -> 'items'
+        items = [
+            {
+                "producto_id": d.producto_id,
+                "cantidad": d.cantidad,
+                "notas_personalizacion": d.notas_personalizacion,
+            }
+            for d in payload.detalles
+        ]
+        direccion_entrega = payload.direccion_entrega
+        instrucciones_entrega = payload.instrucciones_entrega
+        cliente_id = payload.cliente_id
+        metodo_pago = payload.metodo_pago
+
     pedido = create_pedido(
-        cliente_id=payload.cliente_id,
-        metodo_pago=payload.metodo_pago,
-        items=[item.model_dump() for item in payload.items],
-        direccion_entrega=payload.direccion_entrega,
-        instrucciones_entrega=payload.instrucciones_entrega,
+        cliente_id=cliente_id,
+        metodo_pago=metodo_pago,
+        items=items,
+        direccion_entrega=direccion_entrega,
+        instrucciones_entrega=instrucciones_entrega,
     )
     if not pedido:
-        # Falló la creación por falta de stock o cliente inexistente
         raise HTTPException(
             status_code=400,
             detail="No se pudo crear el pedido. Verifique el cliente y el inventario disponible.",
@@ -55,7 +75,7 @@ def create_pedido_endpoint(payload: PedidoCreate):
 @router.get("/{pedido_id}", response_model=PedidoOut)
 def get_pedido_endpoint(pedido_id: int):
     """Obtiene un pedido por su ID."""
-    pedido = get_pedido(pedido_id) 
+    pedido = get_pedido(pedido_id)
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
     return pedido
@@ -72,12 +92,8 @@ def list_pedidos_endpoint(
 
 
 @router.put("/{pedido_id}", response_model=PedidoOut)
-def update_pedido_endpoint(pedido_id: int, payload: PedidoCreate):
-    """Actualiza TODO el pedido usando el mismo JSON que el POST/GET.
-
-    Reemplaza detalles, cliente, método de pago y direcciones.
-    Si falta stock para la nueva composición, no aplica los cambios.
-    """
+def update_pedido_endpoint(pedido_id: int, payload: PedidoUpdate):
+    """Actualiza TODO el pedido usando el JSON completo (PedidoOut)."""
     existing = get_pedido(pedido_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
@@ -86,17 +102,19 @@ def update_pedido_endpoint(pedido_id: int, payload: PedidoCreate):
         pedido_id=pedido_id,
         cliente_id=payload.cliente_id,
         metodo_pago=payload.metodo_pago,
-        items=[item.model_dump() for item in payload.items],
+        estatus=payload.estatus,
+        monto_total=payload.monto_total,
         direccion_entrega=payload.direccion_entrega,
         instrucciones_entrega=payload.instrucciones_entrega,
+        detalles=[detalle.model_dump() for detalle in payload.detalles],
     )
     if not updated:
-        # Puede fallar por cliente inexistente o falta de stock
         raise HTTPException(
             status_code=400,
             detail="No se pudo actualizar el pedido. Verifique cliente y stock disponible.",
         )
     return updated
+
 
 @router.delete("/{pedido_id}", status_code=204)
 def delete_pedido_endpoint(pedido_id: int):
