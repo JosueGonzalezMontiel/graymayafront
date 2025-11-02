@@ -365,6 +365,7 @@ class App {
       colaboraciones: () =>
         CatalogoPage.render("colaboraciones", "Colaboraciones"),
       login: () => LoginPage.render(),
+      signup: () => SignupPage.render(),
       "panel-control": () => PanelControlPage.render(),
     };
   }
@@ -455,6 +456,8 @@ class App {
 }
 
 const app = new App();
+// Exponer instancia global para navegación desde vistas dinámicas
+window.app = app;
 
 // ========================================
 // MÓDULO: Carrito (funciones relacionadas al carrito)
@@ -1028,57 +1031,6 @@ class CatalogoPage {
 }
 
 // ========================================
-// PÁGINA: Login
-// ========================================
-class LoginPage {
-  static render() {
-    const app = document.getElementById("app");
-    if (!app) return;
-
-    app.innerHTML = `
-        <div class="login-container">
-            <div class="login-card">
-                <h2 class="login-title text-center mb-2">Bienvenido a Graymaya</h2>
-                <p class="login-subtitle text-center">Inicia sesión para continuar</p>
-                <form id="loginForm">
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control form-control-dark" id="email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Contraseña</label>
-                        <input type="password" class="form-control form-control-dark" id="password" required>
-                    </div>
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="remember">
-                        <label class="form-check-label" for="remember">Recordarme</label>
-                    </div>
-                    <button type="submit" class="btn btn-primary-custom w-100">Iniciar Sesión</button>
-                </form>
-                <div class="text-center mt-3">
-                    <a href="#" class="text-muted">¿Olvidaste tu contraseña?</a>
-                </div>
-            </div>
-        </div>
-    `;
-
-    const form = document.getElementById("loginForm");
-    if (form) {
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const email = document.getElementById("email").value;
-        localStorage.setItem("usuario", JSON.stringify({ email }));
-        alert("Sesión iniciada correctamente");
-        app.navigateTo?.("inicio");
-        // llamar a la instancia global app si existe
-        if (app && typeof window === "object") {
-          // use global app instance
-          window.location.hash = "#inicio";
-        }
-      });
-    }
-  }
-}
 
 // ========================================
 // PÁGINA: Panel de Control (y sus módulos administrativos)
