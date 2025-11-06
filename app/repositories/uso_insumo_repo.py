@@ -10,6 +10,7 @@ from app.models.uso_insumo import UsoInsumo
 from app.models.insumo import Insumo
 from app.models.producto import Producto
 from app.repositories.insumo_repo import ajustar_stock_insumo
+from peewee import JOIN
 
 
 def create_uso_insumo(data: dict) -> Optional[UsoInsumo]:
@@ -48,13 +49,12 @@ def list_usos_insumo(
         Tupla (lista de usos, total de registros que cumplen el filtro).
     """
     # Unir con Insumo y Producto para búsquedas en sus nombres
-    query = (
-        UsoInsumo.select()
-        .join(Insumo)
-        .switch(UsoInsumo)
-        .join(Producto, join_type="left outer")
-    )
+    # Siempre unimos con Insumo para poder filtrar por su nombre.
+    query = UsoInsumo.select().join(Insumo)
+
+    # Unir con Producto solo si se requiere buscar por su nombre
     if q:
+        query = query.switch(UsoInsumo).join(Producto, JOIN.LEFT_OUTER)
         # Filtrar por nombre de insumo, nombre de producto o notas
         query = query.where(
             (Insumo.nombre_insumo.contains(q))

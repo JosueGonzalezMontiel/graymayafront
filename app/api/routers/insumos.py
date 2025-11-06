@@ -7,11 +7,16 @@ de API.
 """
 
 from typing import List, Optional
+from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query, Security
+from fastapi.responses import StreamingResponse
+import io
+from docxtpl import DocxTemplate
 
 from app.api.deps import get_api_key
 from app.db.peewee_conn import to_dict
+from app.repositories.colaborador_repo import list_colaboradores
 from app.repositories.insumo_repo import (
     create_insumo,
     delete_insumo,
@@ -96,3 +101,82 @@ def delete_insumo_endpoint(insumo_id: int):
     if not ok:
         raise HTTPException(status_code=404, detail="Insumo no encontrado")
     return None
+
+
+@router.get("/export/resguardo", response_class=StreamingResponse)
+def export_resguardo_endpoint(
+    colaborador_nombre: str = Query(..., description="Nombre del colaborador"),
+    q: Optional[str] = Query(None, description="Filtro de búsqueda en insumos"),
+    order_by: str = Query("insumo_id"),
+    desc: bool = Query(False),
+):
+    """Genera documento de resguardo de inventario usando plantilla Word con Jinja2."""
+    
+    # 1. Buscar colaborador por nombre
+    colaboradores, _ = list_colaboradores(q=colaborador_nombre, limit=1, offset=0)
+    if not colaboradores:
+        raise HTTPException(status_code=404, detail="Colaborador no encontrado")
+    colaborador = colaboradores[0]
+    
+    # 2. Obtener todos los insumos (sin límite para el documento)
+    insumos, _ = list_insumos(q=q, limit=10000, offset=0, order_by=order_by, desc=desc)
+    
+    # 3. Cargar plantilla Word con docxtpl
+    template_path = "docs/resguardo de inventario.docx"
+    try:
+        doc = DocxTemplate(template_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al cargar plantilla: {str(e)}")
+    
+    # 4. Preparar lista de insumos como diccionarios para la tabla
+    rows = []
+    suma_total = 0.0
+    for insumo in insumos:
+        costo = float(insumo.costo_unitario or 0)
+        stock = float(insumo.stock_insumo or 0)
+        subtotal = costo * stock
+        suma_total += subtotal
+        
+        rows.append({
+            'id_insumo': insumo.insumo_id,
+            'nombre_insumo': insumo.nombre_insumo or "",
+            'descripcion': insumo.descripcion or "",
+            'marca': insumo.marca or "",
+            'color': insumo.color or "",
+            'unidad_medida': insumo.unidad_medida or "",
+            'stock_insumo': stock,
+            'costo_unitario': costo,
+        })
+    
+    # 5. Preparar contexto completo para la plantilla Jinja2
+    context = {
+        'marca': colaborador.nombre or "",
+        'nombre': colaborador.nombre or "",
+        'contacto': colaborador.contacto or "",
+        'detalle_acuerdo': colaborador.detalle_acuerdo or "",
+        'fecha': datetime.now().strftime("%d/%m/%Y"),
+        'rows': rows,
+        'suma': f"${suma_total:,.2f}",
+    }
+    
+    # 6. Renderizar la plantilla con el contexto
+    try:
+        doc.render(context)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al renderizar plantilla: {str(e)}")
+    
+    # 7. Guardar en memoria y devolver
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    
+    filename = f"resguardo_{colaborador.nombre.replace(' ', '_')}.docx"
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"'
+    }
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers=headers
+    )

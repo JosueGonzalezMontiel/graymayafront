@@ -26,6 +26,9 @@ class LoginPage {
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
+              <div class="text-center mb-3">
+                <img src="public/img/icons/tarjetaIco.png" alt="Graymaya" style="height: 60px;">
+              </div>
               <h2 class="login-title text-center mb-2">Bienvenido a Graymaya</h2>
               <p class="login-subtitle text-center">Inicia sesión para continuar</p>
               <form id="loginForm">
@@ -92,12 +95,8 @@ class LoginPage {
             const modalInstance = bootstrap.Modal.getInstance(modal);
             if (modalInstance) modalInstance.hide();
 
-            // Navegar a inicio si no estamos ya allí
-            if (window.app && typeof window.app.navigateTo === "function") {
-              window.app.navigateTo("inicio");
-            } else {
-              window.location.hash = "#inicio";
-            }
+            // Verificar si el usuario existe en la tabla clientes
+            await LoginPage.checkAndCompleteProfile(userCredential.user.email);
           }
         } catch (error) {
           console.error("Error al iniciar sesión:", error.code);
@@ -131,12 +130,11 @@ class LoginPage {
           const modalInstance = bootstrap.Modal.getInstance(modal);
           if (modalInstance) modalInstance.hide();
 
-          // Navegar a inicio
-          if (window.app && typeof window.app.navigateTo === "function") {
-            window.app.navigateTo("inicio");
-          } else {
-            window.location.hash = "#inicio";
-          }
+          // Verificar si el usuario existe en la tabla clientes
+          await LoginPage.checkAndCompleteProfile(
+            credentials.user.email,
+            credentials.user.displayName
+          );
         } catch (error) {
           console.error("Error al iniciar sesión con Google:", error);
           notificaciones(
@@ -167,6 +165,42 @@ class LoginPage {
     // Mostrar el modal
     const modalInstance = new bootstrap.Modal(modal);
     modalInstance.show();
+  }
+
+  // Verificar si el usuario existe en clientes y mostrar modal si no
+  static async checkAndCompleteProfile(email, displayName = "") {
+    try {
+      // Buscar cliente por email
+      const clientes = await window.API.fetch("/clientes?limit=200");
+      const clienteExistente = clientes.items?.find((c) => c.email === email);
+
+      if (!clienteExistente) {
+        // Usuario no existe en la tabla, mostrar modal de completar perfil
+        setTimeout(() => {
+          if (window.SignupPage && window.SignupPage.showCompleteProfileModal) {
+            window.SignupPage.showCompleteProfileModal(email, displayName);
+          }
+        }, 300);
+      } else {
+        // Usuario existe, guardar en localStorage y navegar
+        localStorage.setItem("currentUser", JSON.stringify(clienteExistente));
+        console.log("Usuario guardado en localStorage:", clienteExistente);
+
+        if (window.app && typeof window.app.navigateTo === "function") {
+          window.app.navigateTo("inicio");
+        } else {
+          window.location.hash = "#inicio";
+        }
+      }
+    } catch (error) {
+      console.error("Error al verificar cliente:", error);
+      // En caso de error, permitir continuar
+      if (window.app && typeof window.app.navigateTo === "function") {
+        window.app.navigateTo("inicio");
+      } else {
+        window.location.hash = "#inicio";
+      }
+    }
   }
 }
 

@@ -30,6 +30,14 @@ router = APIRouter(
 )
 
 
+def _compra_to_out_dict(compra):
+    d = to_dict(compra)
+    # Normalizar clave foránea a *_id para que coincida con el esquema
+    if "insumo" in d and "insumo_id" not in d:
+        d["insumo_id"] = d.pop("insumo")
+    return d
+
+
 @router.post("", response_model=CompraInsumoOut, status_code=201)
 def create_compra_insumo_endpoint(payload: CompraInsumoCreate):
     """Registra la compra de un insumo y actualiza el inventario."""
@@ -45,7 +53,7 @@ def create_compra_insumo_endpoint(payload: CompraInsumoCreate):
         "proveedor": payload.proveedor,
     }
     compra = create_compra_insumo(data)
-    return to_dict(compra)
+    return _compra_to_out_dict(compra)
 
 
 @router.get("/{compra_id}", response_model=CompraInsumoOut)
@@ -54,7 +62,7 @@ def get_compra_insumo_endpoint(compra_id: int):
     compra = get_compra_insumo(compra_id)
     if not compra:
         raise HTTPException(status_code=404, detail="Compra de insumo no encontrada")
-    return to_dict(compra)
+    return _compra_to_out_dict(compra)
 
 
 @router.get("", response_model=CompraInsumoList)
@@ -86,7 +94,7 @@ def list_compras_insumo_endpoint(
     compras, total = list_compras_insumo(
         q=q, limit=limit, offset=offset, order_by=order_by, desc=desc
     )
-    items = [to_dict(c) for c in compras]
+    items = [_compra_to_out_dict(c) for c in compras]
     return {
         "total": total,
         "limit": limit,

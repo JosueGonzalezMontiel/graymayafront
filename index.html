@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Graymaya - Tienda de Ropa</title>
+    <title>Graymaya Mx</title>
+    <link rel="icon" type="image/png" href="public/img/icons/pestaIco.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
@@ -20,6 +21,11 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            
+            <!-- Logo central del navbar -->
+            <a class="navbar-brand position-absolute start-50 translate-middle-x" href="#" data-page="inicio">
+                <img src="public/img/icons/icoNav.png" alt="Graymaya Logo" style="height: 40px;">
+            </a>
             
             <!-- Menús de navegación -->
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -72,7 +78,9 @@
                 <span>Total:</span>
                 <span id="carritoTotal">$0</span>
             </div>
-            <button class="btn btn-primary-custom w-100">Proceder al Pago</button>
+            <button class="btn btn-primary-custom w-100" onclick="Cart.procederAlPago()">
+                <i class="bi bi-credit-card"></i> Proceder al Pago
+            </button>
         </div>
     </div>
 
@@ -85,23 +93,11 @@
             <button class="btn-close-cuenta" onclick="toggleMiCuenta(event)">&times;</button>
         </div>
         <div class="cuenta-body">
-            <div class="cuenta-section">
-                <h6><i class="bi bi-person-circle"></i> Información Personal</h6>
-                <p class="text-muted">Nombre: Usuario Demo</p>
-                <p class="text-muted">Email: usuario@graymaya.com</p>
-            </div>
-            <div class="cuenta-section">
-                <h6><i class="bi bi-bag-check"></i> Mis Compras</h6>
-                <p class="text-muted">No tienes compras recientes</p>
-            </div>
-            <div class="cuenta-section">
-                <h6><i class="bi bi-tag"></i> Promociones</h6>
-                <p class="text-muted">10% de descuento en tu próxima compra</p>
-            </div>
-            <div class="cuenta-section">
-                <h6><i class="bi bi-envelope"></i> Contacto</h6>
-                <p class="text-muted">info@graymaya.com</p>
-                <p class="text-muted">+52 123 456 7890</p>
+            <!-- El contenido se cargará dinámicamente desde JavaScript -->
+            <div class="cuenta-section text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
             </div>
         </div>
     </div>
@@ -124,7 +120,7 @@
             <div class="row g-4">
                 <div class="col-md-4">
                     <h5 class="footer-title">Graymaya</h5>
-                    <p class="footer-text">Moda urbana y contemporánea para expresar tu estilo único.</p>
+                    <p class="footer-text">Queremos que tengas el mejor estilo por eso necesitas un Graymaya.</p>
                 </div>
                 <div class="col-md-4">
                     <h5 class="footer-title">Enlaces Rápidos</h5>
@@ -138,9 +134,9 @@
                 <div class="col-md-4">
                     <h5 class="footer-title">Contacto</h5>
                     <ul class="footer-links">
-                        <li><i class="bi bi-envelope"></i> info@graymaya.com</li>
-                        <li><i class="bi bi-phone"></i> +52 123 456 7890</li>
-                        <li><i class="bi bi-instagram"></i> @graymaya</li>
+                        <li><i class="bi bi-envelope"></i> graymayamx@gmail.com</li>
+                        <li><i class="bi bi-phone"></i> +52 5618372849</li>
+                        <li><i class="bi bi-instagram"></i> @graymaya.mx</li>
                     </ul>
                 </div>
             </div>
@@ -151,50 +147,9 @@
         </div>
     </footer>
 
-    <!-- ========================================
-         MODAL - Formulario de personalización
-         ======================================== -->
-    <div class="modal fade" id="personalizadaModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content modal-dark">
-                <div class="modal-header">
-                    <h5 class="modal-title">Solicitar Prenda Personalizada</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="personalizadaForm">
-                        <div class="mb-3">
-                            <label class="form-label">Nombre</label>
-                            <input type="text" class="form-control form-control-dark" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control form-control-dark" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Tipo de Prenda</label>
-                            <select class="form-control form-control-dark" required>
-                                <option value="">Seleccionar...</option>
-                                <option value="sudadera">Sudadera</option>
-                                <option value="playera">Playera</option>
-                                <option value="pantalon">Pantalón</option>
-                                <option value="otro">Otro</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Descripción del Diseño</label>
-                            <textarea class="form-control form-control-dark" rows="4" required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary-custom w-100">Enviar Solicitud</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 
 
 

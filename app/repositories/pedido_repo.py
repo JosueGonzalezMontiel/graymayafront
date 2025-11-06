@@ -5,6 +5,7 @@ productos involucrados.
 """
 
 from typing import List, Optional, Sequence
+from datetime import date
 
 from peewee import DoesNotExist
 
@@ -87,8 +88,44 @@ def get_pedido(pedido_id: int) -> Optional[Pedido]:
         return None
 
 
-def list_pedidos(skip: int = 0, limit: int = 50) -> List[Pedido]:
-    return list(Pedido.select().offset(skip).limit(limit))
+def _pedidos_base_query(
+    cliente_id: int | None = None,
+    estatus: str | None = None,
+    desde: date | None = None,
+    hasta: date | None = None,
+):
+    q = Pedido.select()
+    if cliente_id is not None:
+        q = q.where(Pedido.cliente == cliente_id)
+    if estatus is not None:
+        q = q.where(Pedido.estatus == estatus)
+    # TODO: si tu campo de fecha no es 'created_at', cámbialo aquí
+    if desde is not None:
+        q = q.where(Pedido.created_at >= desde)
+    if hasta is not None:
+        q = q.where(Pedido.created_at <= hasta)
+    return q
+
+
+def count_pedidos(
+    cliente_id: int | None = None,
+    estatus: str | None = None,
+    desde: date | None = None,
+    hasta: date | None = None,
+) -> int:
+    return _pedidos_base_query(cliente_id, estatus, desde, hasta).count()
+
+
+def list_pedidos(
+    skip: int = 0,
+    limit: int = 50,
+    cliente_id: int | None = None,
+    estatus: str | None = None,
+    desde: date | None = None,
+    hasta: date | None = None,
+) -> List[Pedido]:
+    q = _pedidos_base_query(cliente_id, estatus, desde, hasta).order_by(Pedido.pedido_id.desc())
+    return list(q.offset(skip).limit(limit))
 
 
 def update_pedido(
