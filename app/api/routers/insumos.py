@@ -112,71 +112,99 @@ def export_resguardo_endpoint(
 ):
     """Genera documento de resguardo de inventario usando plantilla Word con Jinja2."""
     
-    # 1. Buscar colaborador por nombre
-    colaboradores, _ = list_colaboradores(q=colaborador_nombre, limit=1, offset=0)
-    if not colaboradores:
-        raise HTTPException(status_code=404, detail="Colaborador no encontrado")
-    colaborador = colaboradores[0]
-    
-    # 2. Obtener todos los insumos (sin límite para el documento)
-    insumos, _ = list_insumos(q=q, limit=10000, offset=0, order_by=order_by, desc=desc)
-    
-    # 3. Cargar plantilla Word con docxtpl
-    template_path = "docs/resguardo de inventario.docx"
     try:
-        doc = DocxTemplate(template_path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al cargar plantilla: {str(e)}")
-    
-    # 4. Preparar lista de insumos como diccionarios para la tabla
-    rows = []
-    suma_total = 0.0
-    for insumo in insumos:
-        costo = float(insumo.costo_unitario or 0)
-        stock = float(insumo.stock_insumo or 0)
-        subtotal = costo * stock
-        suma_total += subtotal
+        # 1. Buscar colaborador por nombre
+        colaboradores, _ = list_colaboradores(q=colaborador_nombre, limit=1, offset=0)
+        if not colaboradores:
+            raise HTTPException(status_code=404, detail="Colaborador no encontrado")
+        colaborador = colaboradores[0]
         
-        rows.append({
-            'id_insumo': insumo.insumo_id,
-            'nombre_insumo': insumo.nombre_insumo or "",
-            'descripcion': insumo.descripcion or "",
-            'marca': insumo.marca or "",
-            'color': insumo.color or "",
-            'unidad_medida': insumo.unidad_medida or "",
-            'stock_insumo': stock,
-            'costo_unitario': costo,
-        })
-    
-    # 5. Preparar contexto completo para la plantilla Jinja2
-    context = {
-        'marca': colaborador.nombre or "",
-        'nombre': colaborador.nombre or "",
-        'contacto': colaborador.contacto or "",
-        'detalle_acuerdo': colaborador.detalle_acuerdo or "",
-        'fecha': datetime.now().strftime("%d/%m/%Y"),
-        'rows': rows,
-        'suma': f"${suma_total:,.2f}",
-    }
-    
-    # 6. Renderizar la plantilla con el contexto
-    try:
-        doc.render(context)
+        # 2. Obtener todos los insumos (sin límite para el documento)
+        insumos, _ = list_insumos(q=q, limit=10000, offset=0, order_by=order_by, desc=desc)
+        
+        # 3. Obtener ruta de la plantilla - buscar en múltiples ubicaciones posibles
+        template_paths = [
+            os.path.join(os.path.dirname(__file__), "../../docs/RESGUARDO DE INVENTARIO.docx"),
+            os.path.join(os.path.dirname(__file__), "../../docs/resguardo de inventario.docx"),
+            "docs/RESGUARDO DE INVENTARIO.docx",
+            "docs/resguardo de inventario.docx",
+        ]
+        
+        template_path = None
+        for path in template_paths:
+            if os.path.exists(path):
+                template_path = path
+                break
+        
+        if not template_path:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Plantilla no encontrada. Rutas buscadas: {template_paths}"
+            )
+        
+        # 4. Cargar plantilla Word con docxtpl
+        try:
+            doc = DocxTemplate(template_path)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error al cargar plantilla: {str(e)}")
+        
+        # 5. Preparar lista de insumos como diccionarios para la tabla
+        rows = []
+        suma_total = 0.0
+        for insumo in insumos:
+            costo = float(insumo.costo_unitario or 0)
+            stock = float(insumo.stock_insumo or 0)
+            subtotal = costo * stock
+            suma_total += subtotal
+            
+            rows.append({
+                'id_insumo': insumo.insumo_id,
+                'nombre_insumo': insumo.nombre_insumo or "",
+                'descripcion': insumo.descripcion or "",
+                'marca': insumo.marca or "",
+                'color': insumo.color or "",
+                'unidad_medida': insumo.unidad_medida or "",
+                'stock_insumo': stock,
+                'costo_unitario': costo,
+            })
+        
+        # 6. Preparar contexto completo para la plantilla Jinja2
+        context = {
+            'marca': colaborador.nombre or "",
+            'nombre': colaborador.nombre or "",
+            'contacto': colaborador.contacto or "",
+            'detalle_acuerdo': colaborador.detalle_acuerdo or "",
+            'fecha': datetime.now().strftime("%d/%m/%Y"),
+            'rows': rows,
+            'suma': f"${suma_total:,.2f}",
+        }
+        
+        # 7. Renderizar la plantilla con el contexto
+        try:
+            doc.render(context)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error al renderizar plantilla: {str(e)}")
+        
+        # 8. Guardar en memoria y devolver
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+        
+        filename = f"resguardo_{colaborador.nombre.replace(' ', '_')}.docx"
+        headers = {
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+        
+        return StreamingResponse(
+            buffer,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers=headers
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al renderizar plantilla: {str(e)}")
-    
-    # 7. Guardar en memoria y devolver
-    buffer = io.BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
-    
-    filename = f"resguardo_{colaborador.nombre.replace(' ', '_')}.docx"
-    headers = {
-        "Content-Disposition": f'attachment; filename="{filename}"'
-    }
-    
-    return StreamingResponse(
-        buffer,
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers=headers
-    )
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error inesperado al generar resguardo: {str(e)}"
+        )

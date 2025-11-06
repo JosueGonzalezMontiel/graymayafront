@@ -549,7 +549,9 @@ class InventarioAdmin {
     if (q) qs.set("q", q);
     try {
       const blob = await API.fetchBlob(
-        `/insumos/export/resguardo?${qs.toString()}`
+        `/insumos/export/resguardo?colaborador_nombre=${encodeURIComponent(
+          nombre
+        )}&order_by=${order_by}&desc=${desc}`
       );
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
