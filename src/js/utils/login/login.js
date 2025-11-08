@@ -95,6 +95,9 @@ class LoginPage {
             const modalInstance = bootstrap.Modal.getInstance(modal);
             if (modalInstance) modalInstance.hide();
 
+            // Obligar a revalidar el panel en cada nueva sesión
+            localStorage.removeItem("adminSession");
+
             // Verificar si el usuario existe en la tabla clientes
             await LoginPage.checkAndCompleteProfile(userCredential.user.email);
           }
@@ -129,6 +132,9 @@ class LoginPage {
           // Cerrar el modal
           const modalInstance = bootstrap.Modal.getInstance(modal);
           if (modalInstance) modalInstance.hide();
+
+          // Obligar a revalidar el panel en cada nueva sesión
+          localStorage.removeItem("adminSession");
 
           // Verificar si el usuario existe en la tabla clientes
           await LoginPage.checkAndCompleteProfile(
@@ -184,7 +190,16 @@ class LoginPage {
       } else {
         // Usuario existe, guardar en localStorage y navegar
         localStorage.setItem("currentUser", JSON.stringify(clienteExistente));
-        console.log("Usuario guardado en localStorage:", clienteExistente);
+
+        // Actualizar visibilidad del panel admin en vivo
+        if (
+          window.app &&
+          typeof window.app.updateAdminLinkVisibility === "function"
+        ) {
+          try {
+            await window.app.updateAdminLinkVisibility();
+          } catch (_) {}
+        }
 
         if (window.app && typeof window.app.navigateTo === "function") {
           window.app.navigateTo("inicio");

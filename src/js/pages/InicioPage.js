@@ -104,9 +104,7 @@ export class InicioPage {
       images.forEach((img) => {
         if (img.complete && img.naturalHeight > 0) {
           const aspectRatio = img.naturalHeight / img.naturalWidth;
-          console.log(
-            `Imagen: ${img.src}, natural: ${img.naturalWidth}x${img.naturalHeight}, ratio: ${aspectRatio}`
-          );
+
           if (aspectRatio > maxAspectRatio) {
             maxAspectRatio = aspectRatio;
           }
@@ -126,16 +124,7 @@ export class InicioPage {
         carouselItems.forEach((item) => {
           item.style.height = `${alturaFinal}px`;
         });
-
-        console.log(
-          `✅ Carousel ajustado: ancho=${anchoCarousel}px, altura=${alturaFinal}px, ratio=${maxAspectRatio.toFixed(
-            3
-          )}`
-        );
       } else {
-        console.warn(
-          "⚠️ No se pudo calcular aspect ratio. Imágenes aún no cargadas."
-        );
       }
     };
 

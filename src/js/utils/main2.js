@@ -25,14 +25,11 @@ onAuthStateChanged(auth, async (user) => {
           JSON.parse(currentUser).cliente_id !== clienteExistente.cliente_id
         ) {
           localStorage.setItem("currentUser", JSON.stringify(clienteExistente));
-          console.log(
-            "Usuario sincronizado en localStorage:",
-            clienteExistente
-          );
+          console.log("Usuario sincronizado en localStorage:");
         }
       }
     } catch (error) {
-      console.error("Error al sincronizar usuario:", error);
+      console.error("Error al sincronizar usuario:");
     }
   } else {
     // Usuario no autenticado, limpiar localStorage

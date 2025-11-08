@@ -546,7 +546,6 @@ export class Cart {
     const currentUser = JSON.parse(localStorage.getItem("currentUser"));
 
     console.log("Verificando autenticación para checkout...");
-    console.log("currentUser en localStorage:", currentUser);
 
     if (!currentUser || !currentUser.cliente_id) {
       console.warn("Usuario no autenticado o sin cliente_id");
@@ -816,7 +815,7 @@ export class Cart {
       })),
     };
 
-    console.log("Enviando pedido:", formData);
+    console.log("Enviando pedido:");
 
     try {
       const response = await API.createReference("pedidos", formData);

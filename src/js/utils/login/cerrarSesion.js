@@ -11,6 +11,8 @@ window.cerrarSesion = async function () {
     // Limpiar datos del usuario en localStorage
     localStorage.removeItem("currentUser");
     localStorage.removeItem("usuario");
+    // Asegurar que la sesión administrativa también se cierre
+    localStorage.removeItem("adminSession");
     console.log("Datos de usuario eliminados de localStorage");
 
     notificaciones("Sesión cerrada correctamente");
@@ -18,6 +20,12 @@ window.cerrarSesion = async function () {
     // Redirigir a inicio después de cerrar sesión
     if (window.app && typeof window.app.navigateTo === "function") {
       window.app.navigateTo("inicio");
+      // Actualizar visibilidad del panel admin en vivo
+      if (typeof window.app.updateAdminLinkVisibility === "function") {
+        try {
+          await window.app.updateAdminLinkVisibility();
+        } catch (_) {}
+      }
     } else {
       window.location.hash = "#inicio";
     }
