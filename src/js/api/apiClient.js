@@ -1,6 +1,6 @@
 export class APIClient {
   constructor() {
-    this.API_BASE = window.__API_BASE__ || "http://localhost:8000";
+    this.API_BASE = window.__API_BASE__ || "https://api.graymaya.shop/";
     this.API_KEY = window.__API_KEY__ || "dev_key_gms_330455";
   }
 
