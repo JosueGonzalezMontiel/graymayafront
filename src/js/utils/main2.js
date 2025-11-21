@@ -1,6 +1,6 @@
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 import { auth } from "./login/firebase.js";
-import { logincheck } from "./login/logincheck.js";
+import { logincheck } from "./login/loginCheck.js";
 
 import "./login/signup.js";
 import "./login/cerrarSesion.js";
