@@ -1,12 +1,26 @@
 // netlify/functions/proxy.js
 const handler = async (event) => {
-  // Extrae el path después de /api
-  const path = event.path.replace(/^\/\.netlify\/functions\/proxy/, "");
-  const apiBase = process.env.API_BASE; // https://api.graymaya.shop
+  // Quita el prefijo de la función (/ .netlify/functions/proxy)
+  const cleanPath = event.path.replace(/^\/\.netlify\/functions\/proxy/, "");
+
+  const apiBase = process.env.API_BASE; // p.ej. https://api.graymaya.shop
   const apiKey = process.env.API_KEY; // tu clave real
 
+  // Reconstruye la query string (?limit=..., &offset=..., etc.)
+  let query = "";
+  if (event.rawQuery && event.rawQuery.length > 0) {
+    // rawQuery ya viene como "a=1&b=2"
+    query = event.rawQuery;
+  } else if (event.queryStringParameters) {
+    const params = new URLSearchParams(event.queryStringParameters);
+    const qs = params.toString();
+    if (qs) query = qs;
+  }
+
+  const pathWithQuery = query ? `${cleanPath}?${query}` : cleanPath;
+
   // Construye la URL completa hacia la API real
-  const url = `${apiBase}${path}`;
+  const url = `${apiBase}${pathWithQuery}`;
 
   // Prepara las cabeceras
   const headers = {
@@ -14,15 +28,21 @@ const handler = async (event) => {
   };
 
   // Transfiere Content-Type si existe
-  if (event.headers["content-type"]) {
-    headers["Content-Type"] = event.headers["content-type"];
+  const contentTypeHeader =
+    event.headers["content-type"] || event.headers["Content-Type"];
+  if (contentTypeHeader) {
+    headers["Content-Type"] = contentTypeHeader;
   }
+
+  // Evita mandar cuerpo en GET (no es obligatorio, pero queda limpio)
+  const hasBody =
+    event.body && event.httpMethod !== "GET" && event.httpMethod !== "HEAD";
 
   try {
     const res = await fetch(url, {
       method: event.httpMethod,
-      headers: headers,
-      body: event.body || undefined,
+      headers,
+      body: hasBody ? event.body : undefined,
     });
 
     const contentType = res.headers.get("content-type") || "application/json";
