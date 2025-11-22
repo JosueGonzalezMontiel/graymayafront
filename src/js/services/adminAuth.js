@@ -6,6 +6,14 @@ import { notificaciones } from "../utils/notificaciones.js";
  * Maneja autenticación y almacenamiento de sesión admin.
  */
 export class AdminAuth {
+  constructor() {
+    // CAMBIO DE SEGURIDAD: Usar sessionStorage en lugar de localStorage
+    // sessionStorage se borra al cerrar la pestaña
+    this.storageKey = "admin_session";
+    this.storage = sessionStorage; // Cambio crítico
+    this.authToken = null; // Token en memoria
+  }
+
   /**
    * Verifica si el usuario actual es administrador.
    * Consulta el backend para obtener el estado más reciente.
@@ -29,11 +37,11 @@ export class AdminAuth {
   }
 
   /**
-   * Obtiene la sesión admin del localStorage si existe y es válida.
+   * Obtiene la sesión admin del sessionStorage si existe y es válida.
    */
   static getAdminSession() {
     try {
-      const session = localStorage.getItem("adminSession");
+      const session = sessionStorage.getItem("admin_session");
       if (!session) return null;
 
       const parsed = JSON.parse(session);
@@ -45,14 +53,14 @@ export class AdminAuth {
         !currentUser.usuario ||
         parsed.usuario !== currentUser.usuario
       ) {
-        localStorage.removeItem("adminSession");
+        sessionStorage.removeItem("admin_session");
         return null;
       }
 
-      // Expiración opcional: 2 horas
-      const MAX_AGE_MS = 2 * 60 * 60 * 1000;
+      // Expiración: 30 minutos
+      const MAX_AGE_MS = 30 * 60 * 1000;
       if (parsed.timestamp && Date.now() - parsed.timestamp > MAX_AGE_MS) {
-        localStorage.removeItem("adminSession");
+        sessionStorage.removeItem("admin_session");
         return null;
       }
 
@@ -87,9 +95,9 @@ export class AdminAuth {
       });
 
       if (response.access_granted) {
-        // Guardar sesión admin
-        localStorage.setItem(
-          "adminSession",
+        // CAMBIO DE SEGURIDAD: Guardar en sessionStorage con datos mínimos
+        sessionStorage.setItem(
+          "admin_session",
           JSON.stringify({
             usuario: response.usuario,
             nombre: response.nombre,
@@ -128,7 +136,7 @@ export class AdminAuth {
    * Cierra la sesión administrativa.
    */
   static logoutAdmin() {
-    localStorage.removeItem("adminSession");
+    sessionStorage.removeItem("admin_session");
     notificaciones("Sesión administrativa cerrada");
   }
 
@@ -137,6 +145,36 @@ export class AdminAuth {
    */
   static isAdminLoggedIn() {
     return this.getAdminSession() !== null;
+  }
+
+  isAuthenticated() {
+    try {
+      const session = this.storage.getItem(this.storageKey);
+      if (!session) return false;
+
+      const data = JSON.parse(session);
+
+      // CAMBIO DE SEGURIDAD: Expirar sesión después de 30 minutos
+      const MAX_SESSION_TIME = 30 * 60 * 1000; // 30 minutos
+      if (Date.now() - data.timestamp > MAX_SESSION_TIME) {
+        this.logout();
+        return false;
+      }
+
+      return !!data.admin_id && !!this.authToken;
+    } catch {
+      return false;
+    }
+  }
+
+  logout() {
+    this.storage.removeItem(this.storageKey);
+    this.authToken = null; // Limpiar token de memoria
+  }
+
+  getAuthHeader() {
+    // El token se envía en headers, NO se almacena en storage
+    return this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {};
   }
 }
 

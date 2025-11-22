@@ -18,13 +18,20 @@ onAuthStateChanged(auth, async (user) => {
       );
 
       if (clienteExistente) {
-        // Guardar cliente en localStorage si no existe o si es diferente
+        // CAMBIO DE SEGURIDAD: Solo guardar datos esenciales NO sensibles
         const currentUser = localStorage.getItem("currentUser");
+        const userData = {
+          cliente_id: clienteExistente.cliente_id,
+          email: clienteExistente.email,
+          nombre: clienteExistente.nombre,
+          // NO guardar: teléfono, dirección, historial de compras, etc.
+        };
+
         if (
           !currentUser ||
           JSON.parse(currentUser).cliente_id !== clienteExistente.cliente_id
         ) {
-          localStorage.setItem("currentUser", JSON.stringify(clienteExistente));
+          localStorage.setItem("currentUser", JSON.stringify(userData));
           console.log("Usuario sincronizado en localStorage:");
         }
       }

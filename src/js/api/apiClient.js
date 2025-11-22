@@ -1,16 +1,18 @@
 export class APIClient {
   constructor() {
-    this.API_BASE = window.__API_BASE__ || "https://api.graymaya.shop";
-    this.API_KEY = window.__API_KEY__ || "dev_key_gms_330455";
+    // Ya no almacenamos credenciales en el frontend
+    // Todas las peticiones se harán a través de /api
   }
 
   async fetch(path, options = {}) {
-    const url = path.startsWith("http") ? path : `${this.API_BASE}${path}`;
+    // Construye la ruta relativa que será interceptada por Netlify
+    const url = path.startsWith("http") ? path : `/api${path}`;
     const headers = options.headers || {};
-    headers["X-API-KEY"] = this.API_KEY;
+
     if (options.body && !headers["Content-Type"]) {
       headers["Content-Type"] = "application/json";
     }
+
     const res = await fetch(url, { ...options, headers });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
@@ -21,9 +23,10 @@ export class APIClient {
   }
 
   async fetchBlob(path, options = {}) {
-    const url = path.startsWith("http") ? path : `${this.API_BASE}${path}`;
+    // Construye la ruta relativa
+    const url = path.startsWith("http") ? path : `/api${path}`;
     const headers = options.headers || {};
-    headers["X-API-KEY"] = this.API_KEY;
+
     const res = await fetch(url, { ...options, headers });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
@@ -54,9 +57,10 @@ export class APIClient {
   }
 
   async fetchText(path, options = {}) {
-    const url = path.startsWith("http") ? path : `${this.API_BASE}${path}`;
+    // Construye la ruta relativa
+    const url = path.startsWith("http") ? path : `/api${path}`;
     const headers = options.headers || {};
-    headers["X-API-KEY"] = this.API_KEY;
+
     const res = await fetch(url, { ...options, headers });
     if (!res.ok) {
       const msg = await res.text().catch(() => "");

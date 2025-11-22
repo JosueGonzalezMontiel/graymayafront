@@ -210,10 +210,12 @@ export class CatalogoPage {
     return `
       <div class="col-md-4 col-lg-3">
         <div class="product-card ${!isActive ? "product-inactive" : ""}">
-          <img src="${imagen}" alt="${nombre}" class="product-image">
+          <img src="${imagen}" alt="${Utils.escapeHtml(
+      nombre
+    )}" class="product-image">
           <div class="product-info">
-            <h5 class="product-name">${nombre}</h5>
-            <p class="product-description">${descripcion}</p>
+            <h5 class="product-name">${Utils.escapeHtml(nombre)}</h5>
+            <p class="product-description">${Utils.escapeHtml(descripcion)}</p>
             ${detallesHtml}
             <p class="product-price">$${precio}</p>
             <p class="product-stock ${

@@ -5,6 +5,57 @@ import { notificaciones } from "../utils/notificaciones.js";
 
 // MÓDULO: Carrito (funciones relacionadas al carrito)
 export class Cart {
+  constructor() {
+    this.items = this.loadCart();
+  }
+
+  loadCart() {
+    try {
+      const stored = localStorage.getItem("carrito");
+      if (!stored) return [];
+
+      const parsed = JSON.parse(stored);
+
+      // CAMBIO DE SEGURIDAD: Validar y sanitizar datos del carrito
+      if (!Array.isArray(parsed)) return [];
+
+      return parsed
+        .map((item) => ({
+          producto_id: parseInt(item.producto_id) || 0,
+          nombre: String(item.nombre || "").substring(0, 200), // Limitar longitud
+          precio: parseFloat(item.precio) || 0,
+          cantidad: Math.max(1, Math.min(99, parseInt(item.cantidad) || 1)), // Entre 1-99
+          talla_id: parseInt(item.talla_id) || null,
+          color_id: parseInt(item.color_id) || null,
+          imagen: String(item.imagen || "").substring(0, 500), // Limitar URL
+          // NO guardar: información del usuario, tokens, datos sensibles
+        }))
+        .filter((item) => item.producto_id > 0); // Validar IDs válidos
+    } catch (e) {
+      console.error("Error al cargar carrito:", e);
+      return [];
+    }
+  }
+
+  saveCart() {
+    try {
+      // CAMBIO DE SEGURIDAD: Sanitizar antes de guardar
+      const sanitized = this.items.map((item) => ({
+        producto_id: parseInt(item.producto_id) || 0,
+        nombre: String(item.nombre || "").substring(0, 200),
+        precio: parseFloat(item.precio) || 0,
+        cantidad: Math.max(1, Math.min(99, parseInt(item.cantidad) || 1)),
+        talla_id: parseInt(item.talla_id) || null,
+        color_id: parseInt(item.color_id) || null,
+        imagen: String(item.imagen || "").substring(0, 500),
+      }));
+
+      localStorage.setItem("carrito", JSON.stringify(sanitized));
+    } catch (e) {
+      console.error("Error al guardar carrito:", e);
+    }
+  }
+
   static agregarAlCarrito(productoId) {
     const carrito = JSON.parse(localStorage.getItem("carrito")) || [];
 
