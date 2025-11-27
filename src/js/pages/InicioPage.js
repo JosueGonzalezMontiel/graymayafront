@@ -1,5 +1,6 @@
 import { Utils } from "../utils/utils.js";
 import { productosData } from "../utils/productosData.js";
+import { CatalogoPage } from "./CatalogoPage.js";
 
 export class InicioPage {
   static render() {
@@ -57,17 +58,42 @@ export class InicioPage {
         </section>
     `;
 
-    // Cargar productos destacados (usando fallback local)
-    const destacados = [
-      ...productosData.graymayas.slice(0, 2),
-      ...productosData.basicos.slice(0, 2),
-      ...productosData.accesorios.slice(0, 2),
-      ...productosData.colaboraciones.slice(0, 2),
-    ];
+    // Cargar productos destacados (configurable por IDs)
+    // Puedes configurar `InicioPage.destacadosIds` con los IDs deseados
+    // Ej: InicioPage.destacadosIds = [1,8,13,19];
     const container = document.getElementById("productosDestacados");
     if (container) {
+      const destacados = (() => {
+        const cfg = InicioPage.destacadosIds || [];
+        // Si hay configuración por id, resolver productos desde productosData
+        if (Array.isArray(cfg) && cfg.length > 0) {
+          const all = [
+            ...(productosData.graymayas || []),
+            ...(productosData.basicos || []),
+            ...(productosData.accesorios || []),
+            ...(productosData.colaboraciones || []),
+          ];
+          const ids = new Set(cfg.map((v) => Number(v)));
+          const found = [];
+          ids.forEach((id) => {
+            const p = all.find((ap) => (ap.producto_id ?? ap.id) === id);
+            if (p) found.push(p);
+          });
+          return found;
+        }
+
+        // Fallback: tomar primeros 2 de cada categoría (comportamiento anterior)
+        return [
+          ...productosData.graymayas.slice(0, 2),
+          ...productosData.basicos.slice(0, 2),
+          ...productosData.accesorios.slice(0, 2),
+          ...productosData.colaboraciones.slice(0, 2),
+        ];
+      })();
+
+      // Usar la misma tarjeta que el catálogo para mantener consistencia
       container.innerHTML = destacados
-        .map((producto) => InicioPage._crearProductoCard(producto))
+        .map((producto) => CatalogoPage.crearProductoCard(producto))
         .join("");
     }
 
