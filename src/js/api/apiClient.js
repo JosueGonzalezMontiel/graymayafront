@@ -1,6 +1,5 @@
 export class APIClient {
   constructor() {
-    // Ya no almacenamos credenciales en el frontend
     // Todas las peticiones se harán a través de /api
   }
 

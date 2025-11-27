@@ -11,7 +11,7 @@ const handler = async (event) => {
     cleanPath = cleanPath.replace(/^\/api/, "");
   }
 
-  const apiBase = process.env.API_BASE; // p.ej. https://api.graymaya.shop
+  const apiBase = process.env.API_BASE; //
   const apiKey = process.env.API_KEY; // tu clave real
 
   // 3. Reconstruye la query string (?limit=..., &offset=..., etc.)
