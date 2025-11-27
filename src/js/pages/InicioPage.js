@@ -1,9 +1,10 @@
 import { Utils } from "../utils/utils.js";
 import { productosData } from "../utils/productosData.js";
 import { CatalogoPage } from "./CatalogoPage.js";
+import { API } from "../api/apiClient.js";
 
 export class InicioPage {
-  static render() {
+  static async render() {
     const appEl = document.getElementById("app");
     if (!appEl) return;
     appEl.innerHTML = `
@@ -63,33 +64,60 @@ export class InicioPage {
     // Ej: InicioPage.destacadosIds = [1,8,13,19];
     const container = document.getElementById("productosDestacados");
     if (container) {
-      const destacados = (() => {
-        const cfg = InicioPage.destacadosIds || [];
-        // Si hay configuración por id, resolver productos desde productosData
-        if (Array.isArray(cfg) && cfg.length > 0) {
+      const cfg = InicioPage.destacadosIds || [];
+
+      let destacados = [];
+
+      if (Array.isArray(cfg) && cfg.length > 0) {
+        // Intentar resolver desde cache global si está disponible
+        let items = window.productosCache || null;
+
+        // Si no hay cache, intentar llamar a la API
+        if (!items) {
+          try {
+            const res = await API.fetch("/productos?limit=200");
+            items = res.items || [];
+            // Guardar en cache global para otras páginas
+            window.productosCache = items;
+          } catch (err) {
+            items = null;
+          }
+        }
+
+        if (Array.isArray(items) && items.length) {
+          const ids = new Set(cfg.map((v) => Number(v)));
+          cfg.forEach((id) => {
+            const p = items.find(
+              (it) => (it.producto_id ?? it.id) === Number(id)
+            );
+            if (p) destacados.push(p);
+          });
+        }
+
+        // Si no se encontraron productos vía API/cache, intentar fallback local
+        if (!destacados.length) {
           const all = [
             ...(productosData.graymayas || []),
             ...(productosData.basicos || []),
             ...(productosData.accesorios || []),
             ...(productosData.colaboraciones || []),
           ];
-          const ids = new Set(cfg.map((v) => Number(v)));
-          const found = [];
-          ids.forEach((id) => {
-            const p = all.find((ap) => (ap.producto_id ?? ap.id) === id);
-            if (p) found.push(p);
+          cfg.forEach((id) => {
+            const p = all.find(
+              (ap) => (ap.producto_id ?? ap.id) === Number(id)
+            );
+            if (p) destacados.push(p);
           });
-          return found;
         }
-
+      } else {
         // Fallback: tomar primeros 2 de cada categoría (comportamiento anterior)
-        return [
+        destacados = [
           ...productosData.graymayas.slice(0, 2),
           ...productosData.basicos.slice(0, 2),
           ...productosData.accesorios.slice(0, 2),
           ...productosData.colaboraciones.slice(0, 2),
         ];
-      })();
+      }
 
       // Usar la misma tarjeta que el catálogo para mantener consistencia
       container.innerHTML = destacados
