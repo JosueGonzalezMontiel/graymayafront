@@ -110,6 +110,30 @@ export class CatalogoPage {
                         </ul>
                     </div>
                     <div class="filtros-adicionales">
+                        ${
+                          categoria === "graymayas" || categoria === "basicos"
+                            ? `
+                        <div class="filter-group">
+                          <label class="form-label filter-label">Talla</label>
+                          <select id="filter_talla_${categoria}" class="form-select form-select-sm">
+                            <option value="todas">Todas</option>
+                          </select>
+                        </div>
+                        <div class="filter-group">
+                          <label class="form-label filter-label">Color</label>
+                          <select id="filter_color_${categoria}" class="form-select form-select-sm">
+                            <option value="todas">Todos</option>
+                          </select>
+                        </div>
+                        <div class="filter-group">
+                          <button id="reset_filters_${categoria}" class="btn btn-secondary btn-sm" type="button">Restablecer filtros</button>
+                        </div>
+                        <div id="filters_spinner_${categoria}" class="filter-spinner" style="display:none; margin-left:8px; align-self:center;">
+                          <div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Cargando...</span></div>
+                        </div>
+                        `
+                            : ""
+                        }
                         <button class="btn btn-primary-custom" onclick="CatalogoPage.mostrarInfoPersonalizada()">
                             <i class="bi bi-palette"></i> Personalizada
                         </button>
@@ -137,13 +161,68 @@ export class CatalogoPage {
           .forEach((l) => l.classList.remove("active"));
         link.classList.add("active");
         const categoriaFiltro = link.getAttribute("data-categoria");
+        // Leer selects de filtros (si existen)
+        const tallaEl = document.getElementById(`filter_talla_${categoria}`);
+        const colorEl = document.getElementById(`filter_color_${categoria}`);
+        const selTalla = tallaEl ? tallaEl.value : "todas";
+        const selColor = colorEl ? colorEl.value : "todas";
         CatalogoPage.filtrarProductos(
           categoria,
           categoriaFiltro,
-          `productos${categoria}`
+          `productos${categoria}`,
+          selTalla,
+          selColor
         );
+        // Repoblar filtros para la subcategoría activa (asegura tallas/colores relevantes)
+        if (categoria === "graymayas" || categoria === "basicos") {
+          CatalogoPage._showFilterSpinner(categoria, true);
+          References.loadReferences()
+            .then(() => {
+              CatalogoPage._populateFiltersForCategory(
+                categoria,
+                window.productosCache || [],
+                categoriaFiltro
+              );
+            })
+            .catch(() => {
+              CatalogoPage._populateFiltersForCategory(
+                categoria,
+                window.productosCache || [],
+                categoriaFiltro
+              );
+            })
+            .finally(() => {
+              CatalogoPage._showFilterSpinner(categoria, false);
+            });
+        }
       });
     });
+
+    // Handler para botón de restablecer filtros (si existe)
+    if (categoria === "graymayas" || categoria === "basicos") {
+      const resetBtn = document.getElementById(`reset_filters_${categoria}`);
+      if (resetBtn) {
+        resetBtn.addEventListener("click", () => {
+          const tallaEl = document.getElementById(`filter_talla_${categoria}`);
+          const colorEl = document.getElementById(`filter_color_${categoria}`);
+          if (tallaEl) tallaEl.value = "todas";
+          if (colorEl) colorEl.value = "todas";
+          const activeTab = document.querySelector(
+            ".categoria-tabs .nav-link.active"
+          );
+          const sub = activeTab
+            ? activeTab.getAttribute("data-categoria")
+            : "todos";
+          CatalogoPage.filtrarProductos(
+            categoria,
+            sub,
+            `productos${categoria}`,
+            "todas",
+            "todas"
+          );
+        });
+      }
+    }
   }
   // crearProductoCard: reutilizable por catálogo (más completa que la del inicio)
   static crearProductoCard(producto) {
@@ -293,6 +372,22 @@ export class CatalogoPage {
           productos
             .map((producto) => CatalogoPage.crearProductoCard(producto))
             .join("");
+
+        // Si corresponde, forzar carga de referencias y luego poblar selects de filtros (talla/color)
+        if (categoria === "graymayas" || categoria === "basicos") {
+          CatalogoPage._showFilterSpinner(categoria, true);
+          References.loadReferences()
+            .then(() => {
+              CatalogoPage._populateFiltersForCategory(categoria, productos);
+            })
+            .catch(() => {
+              // aunque falle la carga, intentar poblar con lo disponible
+              CatalogoPage._populateFiltersForCategory(categoria, productos);
+            })
+            .finally(() => {
+              CatalogoPage._showFilterSpinner(categoria, false);
+            });
+        }
       })
       .catch((err) => {
         console.error("Error cargando productos:", err.message);
@@ -312,9 +407,172 @@ export class CatalogoPage {
           productos
             .map((producto) => CatalogoPage.crearProductoCard(producto))
             .join("");
+        if (categoria === "graymayas" || categoria === "basicos") {
+          CatalogoPage._showFilterSpinner(categoria, true);
+          References.loadReferences()
+            .then(() => {
+              CatalogoPage._populateFiltersForCategory(categoria, productos);
+            })
+            .catch(() => {
+              CatalogoPage._populateFiltersForCategory(categoria, productos);
+            })
+            .finally(() => {
+              CatalogoPage._showFilterSpinner(categoria, false);
+            });
+        }
       });
   }
-  static filtrarProductos(categoria, filtro, containerId) {
+  static _resolveTallaNameFromProduct(producto) {
+    const tallasCache = cache?.tallas ?? [];
+    const talla_id = producto.talla_id ?? producto.talla ?? null;
+    const tallaObj = tallasCache.find((t) => t.talla_id === talla_id) || {};
+    const tallaName =
+      tallaObj.nombre ??
+      tallaObj.nombre_talla ??
+      tallaObj.label ??
+      (typeof talla_id === "string" ? talla_id : null) ??
+      null;
+    return tallaName ? String(tallaName).trim() : null;
+  }
+
+  static _showFilterSpinner(categoria, show) {
+    try {
+      const el = document.getElementById(`filters_spinner_${categoria}`);
+      if (!el) return;
+      el.style.display = show ? "inline-block" : "none";
+    } catch (err) {
+      // ignore
+    }
+  }
+
+  static _populateFiltersForCategory(categoria, productos, sub = "todos") {
+    try {
+      const tallaSelect = document.getElementById(`filter_talla_${categoria}`);
+      const colorSelect = document.getElementById(`filter_color_${categoria}`);
+
+      if (!tallaSelect && !colorSelect) return;
+
+      // Filtrar productos según subcategoría si se indicó
+      let productosConsiderados = Array.isArray(productos)
+        ? productos.slice()
+        : [];
+      if (sub && sub !== "todos") {
+        const filterMap = CATEGORY_FILTER_MAP[categoria] || {};
+        const filterIds = filterMap[sub] || [];
+        if (filterIds.length > 0) {
+          productosConsiderados = productosConsiderados.filter((p) => {
+            const pid = p.categoria_id ?? p.categoria ?? null;
+            return filterIds.includes(Number(pid));
+          });
+        }
+      }
+
+      // Recolectar tallas y colores únicos
+      const tallasSet = new Set();
+      const colorsSet = new Set();
+
+      productosConsiderados.forEach((p) => {
+        const t = CatalogoPage._resolveTallaNameFromProduct(p);
+        if (t) tallasSet.add(t);
+        const c = (p.color ?? "").toString().trim();
+        if (c) colorsSet.add(c);
+      });
+
+      // Poblar tallas
+      if (tallaSelect) {
+        tallaSelect.innerHTML = `<option value="todas">Todas</option>`;
+        Array.from(tallasSet)
+          .sort((a, b) =>
+            a.localeCompare(b, undefined, { sensitivity: "base" })
+          )
+          .forEach((t) => {
+            const opt = document.createElement("option");
+            opt.value = t;
+            opt.textContent = t;
+            tallaSelect.appendChild(opt);
+          });
+
+        // Reemplazar handler anterior si existe
+        tallaSelect.onchange = (e) => {
+          const selTalla = e.target.value;
+          const selColorEl = document.getElementById(
+            `filter_color_${categoria}`
+          );
+          const selColor = selColorEl ? selColorEl.value : "todas";
+          const activeTab = document.querySelector(
+            ".categoria-tabs .nav-link.active"
+          );
+          const subAct = activeTab
+            ? activeTab.getAttribute("data-categoria")
+            : "todos";
+          CatalogoPage.filtrarProductos(
+            categoria,
+            subAct,
+            `productos${categoria}`,
+            selTalla,
+            selColor
+          );
+          // Repoblar complementary filters for the currently active subcategory
+          CatalogoPage._populateFiltersForCategory(
+            categoria,
+            window.productosCache || [],
+            subAct
+          );
+        };
+      }
+
+      // Poblar colores
+      if (colorSelect) {
+        colorSelect.innerHTML = `<option value="todas">Todos</option>`;
+        Array.from(colorsSet)
+          .sort((a, b) =>
+            a.localeCompare(b, undefined, { sensitivity: "base" })
+          )
+          .forEach((c) => {
+            const opt = document.createElement("option");
+            opt.value = c;
+            opt.textContent = c;
+            colorSelect.appendChild(opt);
+          });
+
+        colorSelect.onchange = (e) => {
+          const selColor = e.target.value;
+          const selTallaEl = document.getElementById(
+            `filter_talla_${categoria}`
+          );
+          const selTalla = selTallaEl ? selTallaEl.value : "todas";
+          const activeTab = document.querySelector(
+            ".categoria-tabs .nav-link.active"
+          );
+          const subAct = activeTab
+            ? activeTab.getAttribute("data-categoria")
+            : "todos";
+          CatalogoPage.filtrarProductos(
+            categoria,
+            subAct,
+            `productos${categoria}`,
+            selTalla,
+            selColor
+          );
+          // Repoblar complementary filters for the currently active subcategory
+          CatalogoPage._populateFiltersForCategory(
+            categoria,
+            window.productosCache || [],
+            subAct
+          );
+        };
+      }
+    } catch (err) {
+      console.error("Error poblando filtros:", err);
+    }
+  }
+  static filtrarProductos(
+    categoria,
+    filtro,
+    containerId,
+    tallaFilter = "todas",
+    colorFilter = "todas"
+  ) {
     const textoDescriptivo = `
       <div class="col-12 mb-4">
         <div class="catalogo-text-panel">
@@ -352,6 +610,24 @@ export class CatalogoPage {
           return filterIds.includes(Number(pid));
         });
       }
+    }
+
+    // Aplicar filtro por talla si se indicó
+    if (tallaFilter && tallaFilter !== "todas") {
+      productosFiltrados = productosFiltrados.filter((p) => {
+        const tName = CatalogoPage._resolveTallaNameFromProduct(p) || "";
+        return (
+          String(tName).toLowerCase() === String(tallaFilter).toLowerCase()
+        );
+      });
+    }
+
+    // Aplicar filtro por color si se indicó
+    if (colorFilter && colorFilter !== "todas") {
+      productosFiltrados = productosFiltrados.filter((p) => {
+        const c = (p.color ?? "").toString().trim();
+        return c.toLowerCase() === String(colorFilter).toLowerCase();
+      });
     }
 
     // Renderizar productos filtrados
