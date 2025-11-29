@@ -2,6 +2,7 @@ import { Utils } from "../utils/utils.js";
 import { productosData } from "../utils/productosData.js";
 import { CatalogoPage } from "./CatalogoPage.js";
 import { API } from "../api/apiClient.js";
+import { cache } from "../utils/cache.js";
 
 export class InicioPage {
   static async render() {
@@ -20,25 +21,25 @@ export class InicioPage {
         <div class="carousel-item active">
           <img src="public/img/carrousel/17.png" class="carousel-img d-block w-100" alt="Colección Graymaya">
                     <div class="carousel-caption">
-                        <a href="#" class="btn-comprar" data-page="graymayas">Comprar</a>
+                        
                     </div>
                 </div>
         <div class="carousel-item">
           <img src="public/img/carrousel/1761136704893.png" class="carousel-img d-block w-100" alt="Nueva Colección">
                     <div class="carousel-caption">
-                        <a href="#" class="btn-comprar" data-page="basicos">Comprar</a>
+                        
                     </div>
                 </div>
         <div class="carousel-item">
           <img src="public/img/carrousel/6.png" class="carousel-img d-block w-100" alt="Accesorios">
                     <div class="carousel-caption">
-                        <a href="#" class="btn-comprar" data-page="accesorios">Comprar</a>
+                        
                     </div>
                 </div>
         <div class="carousel-item">
           <img src="public/img/carrousel/5.png" class="carousel-img d-block w-100" alt="Accesorios">
                     <div class="carousel-caption">
-                        <a href="#" class="btn-comprar" data-page="colaboraciones">Comprar</a>
+                        
                     </div>
                 </div>
             </div>
@@ -224,7 +225,23 @@ export class InicioPage {
     const disponible = stockVal && isActive;
 
     // Obtener nombres desde cache si están (no obligatorio en inicio)
-    const detallesHtml = `<div class="product-details"><div class="detail-item categoria">Sin categoría</div></div>`;
+    const talla_id = producto.talla_id ?? producto.talla ?? null;
+    const tallasCache = cache?.tallas ?? [];
+    const tallaObj = tallasCache.find((t) => t.talla_id === talla_id) || {};
+    const tallaName =
+      tallaObj.nombre ??
+      tallaObj.nombre_talla ??
+      tallaObj.label ??
+      talla_id ??
+      "";
+
+    const detallesHtml = `<div class="product-details"><div class="detail-item categoria">Sin categoría</div>${
+      tallaName
+        ? `<div class="detail-item talla">Talla: ${Utils.escapeHtml(
+            tallaName
+          )}</div>`
+        : ""
+    }</div>`;
 
     return `
       <div class="col-md-4 col-lg-3">

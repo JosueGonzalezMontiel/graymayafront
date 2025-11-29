@@ -172,9 +172,11 @@ export class CatalogoPage {
     const categoria_id =
       getVal(producto, ["categoria_id", "categoria"]) || null;
     const patron_id = getVal(producto, ["patron_id", "patron"]) || null;
+    const talla_id = getVal(producto, ["talla_id", "talla"]) || null;
 
     const categoriasCache = cache?.categorias ?? [];
     const patronesCache = cache?.patrones ?? [];
+    const tallasCache = cache?.tallas ?? [];
 
     const catObj =
       categoriasCache.find((c) => c.categoria_id === categoria_id) ||
@@ -191,6 +193,14 @@ export class CatalogoPage {
       patronObj.codigo_patron ??
       "";
 
+    const tallaObj = tallasCache.find((t) => t.talla_id === talla_id) || {};
+    const tallaName =
+      tallaObj.nombre ??
+      tallaObj.nombre_talla ??
+      tallaObj.label ??
+      talla_id ??
+      "";
+
     const detalles = [];
     detalles.push(
       `<div class="detail-item categoria">${Utils.escapeHtml(
@@ -201,6 +211,12 @@ export class CatalogoPage {
       detalles.push(
         `<div class="detail-item patron">Patrón: ${Utils.escapeHtml(
           patronName
+        )}</div>`
+      );
+    if (tallaName)
+      detalles.push(
+        `<div class="detail-item talla">Talla: ${Utils.escapeHtml(
+          tallaName
         )}</div>`
       );
     const detallesHtml = detalles.length
