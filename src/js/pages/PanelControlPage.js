@@ -1416,12 +1416,7 @@ export class ProductsAdmin {
                 </div>
                 <div class="col-md-4 mb-3">
                   <label class="form-label">Tipo Prenda</label>
-                  <select id="tipo_prenda" class="form-control form-control-dark">
-                    <option value="">N/A</option>
-                    <option value="BASICA">Básica</option>
-                    <option value="ESTAMPADA">Estampada</option>
-                    <option value="TIEDYE">Tie-dye</option>
-                  </select>
+                  <textarea id="tipo_prenda" class="form-control form-control-dark" rows="3"></textarea>
                 </div>
               </div>
               <div class="row g-2">
