@@ -248,6 +248,6 @@ window.deletePedido = (id) => PedidosAdmin.deletePedido(id);
 
 // Configurar productos destacados en la página de inicio
 // IDs solicitados: 5,6,7,8,9,10
-InicioPage.destacadosIds = [5, 6, 7, 8, 9, 10];
+InicioPage.destacadosIds = [19, 1, 41, 55, 51, 58];
 
 app.init();
