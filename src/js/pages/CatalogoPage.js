@@ -154,6 +154,14 @@ export class CatalogoPage {
       categoria,
       `productos${categoria}`
     );
+    // Ocultar loader la primera vez que añadimos contenido
+    try {
+      if (!CatalogoPage._loaderHidden) {
+        const loader = document.getElementById("appLoader");
+        if (loader) loader.style.display = "none";
+        CatalogoPage._loaderHidden = true;
+      }
+    } catch (err) {}
 
     // Event listeners de las pestañas
     document.querySelectorAll(".categoria-tabs .nav-link").forEach((link) => {
