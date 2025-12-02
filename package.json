@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "echo 'no build script'"
+    "generate-images": "node scripts/convert-images.js",
+    "build": "npm run build:site || echo \"define your build script\""
+  },
+  "devDependencies": {
+    "sharp": "^0.34.5"
   }
 }

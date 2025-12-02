@@ -113,23 +113,26 @@ export class CatalogoPage {
                         ${
                           categoria === "graymayas" || categoria === "basicos"
                             ? `
-                        <div class="filter-group">
-                          <label class="form-label filter-label">Talla</label>
-                          <select id="filter_talla_${categoria}" class="form-select form-select-sm">
-                            <option value="todas">Todas</option>
-                          </select>
-                        </div>
-                        <div class="filter-group">
-                          <label class="form-label filter-label">Color</label>
-                          <select id="filter_color_${categoria}" class="form-select form-select-sm">
-                            <option value="todas">Todos</option>
-                          </select>
-                        </div>
-                        <div class="filter-group">
-                          <button id="reset_filters_${categoria}" class="btn btn-secondary btn-sm" type="button">Restablecer filtros</button>
-                        </div>
-                        <div id="filters_spinner_${categoria}" class="filter-spinner" style="display:none; margin-left:8px; align-self:center;">
-                          <div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Cargando...</span></div>
+                        <button id="toggle_filters_${categoria}" class="btn btn-outline-light btn-sm" type="button">Más filtros</button>
+                        <div id="filter_panel_${categoria}" class="filter-panel" style="display:none; align-items:center;">
+                          <div class="filter-group">
+                            <label class="form-label filter-label">Talla</label>
+                            <select id="filter_talla_${categoria}" class="form-select form-select-sm">
+                              <option value="todas">Todas</option>
+                            </select>
+                          </div>
+                          <div class="filter-group">
+                            <label class="form-label filter-label">Color</label>
+                            <select id="filter_color_${categoria}" class="form-select form-select-sm">
+                              <option value="todas">Todos</option>
+                            </select>
+                          </div>
+                          <div class="filter-group">
+                            <button id="reset_filters_${categoria}" class="btn btn-secondary btn-sm" type="button">Restablecer filtros</button>
+                          </div>
+                          <div id="filters_spinner_${categoria}" class="filter-spinner" style="display:none; margin-left:8px; align-self:center;">
+                            <div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Cargando...</span></div>
+                          </div>
                         </div>
                         `
                             : ""
@@ -197,6 +200,15 @@ export class CatalogoPage {
         }
       });
     });
+    // En móvil, cerrar el panel de filtros automáticamente
+    try {
+      if (window.innerWidth <= 576) {
+        const panelEl = document.getElementById(`filter_panel_${categoria}`);
+        const toggleEl = document.getElementById(`toggle_filters_${categoria}`);
+        if (panelEl) panelEl.style.display = "none";
+        if (toggleEl) toggleEl.textContent = "Más filtros";
+      }
+    } catch (err) {}
 
     // Handler para botón de restablecer filtros (si existe)
     if (categoria === "graymayas" || categoria === "basicos") {
@@ -220,6 +232,34 @@ export class CatalogoPage {
             "todas",
             "todas"
           );
+          // En móvil, cerrar el panel de filtros automáticamente tras restablecer
+          try {
+            if (window.innerWidth <= 576) {
+              const panelEl = document.getElementById(
+                `filter_panel_${categoria}`
+              );
+              const toggleEl = document.getElementById(
+                `toggle_filters_${categoria}`
+              );
+              if (panelEl) panelEl.style.display = "none";
+              if (toggleEl) toggleEl.textContent = "Más filtros";
+            }
+          } catch (err) {}
+        });
+      }
+      // toggle more filters panel
+      const toggleBtn = document.getElementById(`toggle_filters_${categoria}`);
+      const panel = document.getElementById(`filter_panel_${categoria}`);
+      if (toggleBtn && panel) {
+        toggleBtn.addEventListener("click", () => {
+          const isOpen = panel.style.display && panel.style.display !== "none";
+          if (isOpen) {
+            panel.style.display = "none";
+            toggleBtn.textContent = "Más filtros";
+          } else {
+            panel.style.display = "flex";
+            toggleBtn.textContent = "Cerrar filtros";
+          }
         });
       }
     }
@@ -367,11 +407,11 @@ export class CatalogoPage {
           </div>
         `;
 
-        container.innerHTML =
-          textoDescriptivo +
-          productos
-            .map((producto) => CatalogoPage.crearProductoCard(producto))
-            .join("");
+        container.innerHTML = textoDescriptivo;
+
+        // Renderizar en chunks para no bloquear el hilo principal
+        CatalogoPage._initLazyImagesObserver();
+        CatalogoPage._renderInChunks(productos, containerId, 24);
 
         // Si corresponde, forzar carga de referencias y luego poblar selects de filtros (talla/color)
         if (categoria === "graymayas" || categoria === "basicos") {
@@ -467,19 +507,29 @@ export class CatalogoPage {
         }
       }
 
-      // Recolectar tallas y colores únicos
+      // Recolectar tallas y colores únicos y sus conteos
       const tallasSet = new Set();
       const colorsSet = new Set();
+      const tallasCount = new Map();
+      const colorsCount = new Map();
 
       productosConsiderados.forEach((p) => {
         const t = CatalogoPage._resolveTallaNameFromProduct(p);
-        if (t) tallasSet.add(t);
+        if (t) {
+          tallasSet.add(t);
+          tallasCount.set(t, (tallasCount.get(t) || 0) + 1);
+        }
         const c = (p.color ?? "").toString().trim();
-        if (c) colorsSet.add(c);
+        if (c) {
+          colorsSet.add(c);
+          colorsCount.set(c, (colorsCount.get(c) || 0) + 1);
+        }
       });
 
       // Poblar tallas
       if (tallaSelect) {
+        // preservar selección actual si existe
+        const prevTalla = tallaSelect.value;
         tallaSelect.innerHTML = `<option value="todas">Todas</option>`;
         Array.from(tallasSet)
           .sort((a, b) =>
@@ -488,9 +538,17 @@ export class CatalogoPage {
           .forEach((t) => {
             const opt = document.createElement("option");
             opt.value = t;
-            opt.textContent = t;
+            const count = tallasCount.get(t) || 0;
+            opt.textContent = `${t} (${count})`;
             tallaSelect.appendChild(opt);
           });
+
+        // Restaurar selección previa si todavía existe
+        if (prevTalla && tallasSet.has(prevTalla)) {
+          tallaSelect.value = prevTalla;
+        } else {
+          tallaSelect.value = "todas";
+        }
 
         // Reemplazar handler anterior si existe
         tallaSelect.onchange = (e) => {
@@ -518,11 +576,25 @@ export class CatalogoPage {
             window.productosCache || [],
             subAct
           );
+          // En móvil, cerrar el panel de filtros automáticamente
+          try {
+            if (window.innerWidth <= 576) {
+              const panelEl = document.getElementById(
+                `filter_panel_${categoria}`
+              );
+              const toggleEl = document.getElementById(
+                `toggle_filters_${categoria}`
+              );
+              if (panelEl) panelEl.style.display = "none";
+              if (toggleEl) toggleEl.textContent = "Más filtros";
+            }
+          } catch (err) {}
         };
       }
 
       // Poblar colores
       if (colorSelect) {
+        const prevColor = colorSelect.value;
         colorSelect.innerHTML = `<option value="todas">Todos</option>`;
         Array.from(colorsSet)
           .sort((a, b) =>
@@ -531,9 +603,17 @@ export class CatalogoPage {
           .forEach((c) => {
             const opt = document.createElement("option");
             opt.value = c;
-            opt.textContent = c;
+            const count = colorsCount.get(c) || 0;
+            opt.textContent = `${c} (${count})`;
             colorSelect.appendChild(opt);
           });
+
+        // Restaurar selección previa si todavía existe
+        if (prevColor && colorsSet.has(prevColor)) {
+          colorSelect.value = prevColor;
+        } else {
+          colorSelect.value = "todas";
+        }
 
         colorSelect.onchange = (e) => {
           const selColor = e.target.value;
@@ -560,6 +640,19 @@ export class CatalogoPage {
             window.productosCache || [],
             subAct
           );
+          // En móvil, cerrar el panel de filtros automáticamente
+          try {
+            if (window.innerWidth <= 576) {
+              const panelEl = document.getElementById(
+                `filter_panel_${categoria}`
+              );
+              const toggleEl = document.getElementById(
+                `toggle_filters_${categoria}`
+              );
+              if (panelEl) panelEl.style.display = "none";
+              if (toggleEl) toggleEl.textContent = "Más filtros";
+            }
+          } catch (err) {}
         };
       }
     } catch (err) {
@@ -631,21 +724,259 @@ export class CatalogoPage {
     }
 
     // Renderizar productos filtrados
-    const productosHtml = productosFiltrados
-      .map((p) => CatalogoPage.crearProductoCard(p))
-      .join("");
-
-    container.innerHTML = textoDescriptivo + productosHtml;
-
-    // Si no hay productos, mostrar mensaje
-    if (productosFiltrados.length === 0) {
-      container.innerHTML += `
+    // Renderizar resultados usando chunking (no bloquear UI)
+    CatalogoPage._initLazyImagesObserver();
+    if (!productosFiltrados || productosFiltrados.length === 0) {
+      container.innerHTML =
+        textoDescriptivo +
+        `
         <div class="col-12">
           <div class="alert alert-info text-center">
             No se encontraron productos en esta categoría.
           </div>
         </div>
       `;
+      return;
+    }
+    container.innerHTML = textoDescriptivo;
+    CatalogoPage._renderInChunks(productosFiltrados, containerId, 24);
+  }
+
+  // Inicializa un IntersectionObserver para lazy-loading de imágenes
+  static _initLazyImagesObserver() {
+    try {
+      if (this._lazyObserver) return;
+      const options = { root: null, rootMargin: "200px", threshold: 0.01 };
+      this._lazyObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const img = entry.target;
+            const src = img.getAttribute("data-src");
+            if (src) {
+              img.src = src;
+              img.removeAttribute("data-src");
+            }
+            img.classList.remove("lazy");
+            // Si dentro de un <picture> hay <source data-srcset>, asignarlas
+            try {
+              const pic = img.parentNode;
+              if (pic && pic.tagName === "PICTURE") {
+                const sources = pic.querySelectorAll("source[data-srcset]");
+                sources.forEach((s) => {
+                  const ds = s.getAttribute("data-srcset");
+                  if (ds) {
+                    s.srcset = ds;
+                    s.removeAttribute("data-srcset");
+                  }
+                });
+              }
+            } catch (err) {}
+            try {
+              this._lazyObserver.unobserve(img);
+            } catch (err) {}
+          }
+        });
+      }, options);
+    } catch (err) {
+      // ignore
+    }
+  }
+
+  // Crea un elemento DOM para la tarjeta de producto (usa lazy image via data-src)
+  static crearProductoCardElement(producto) {
+    const id = producto.producto_id ?? producto.id;
+    const nombre = producto.nombre_producto ?? producto.nombre ?? "Sin nombre";
+    const descripcion =
+      producto.descripcion ?? producto.descripcion_producto ?? "";
+    const precio = producto.precio ?? 0;
+    const rawImg =
+      producto.url_imagen ??
+      producto.imagen ??
+      "/placeholder.svg?height=300&width=300";
+    const imagen = Utils.normalizeMediaUrl(rawImg);
+    const stockVal = (producto.stock ?? 0) > 0;
+    const isActive = producto.activo ?? true;
+    const disponible = stockVal && isActive;
+
+    const getVal = (obj, keys) => {
+      for (const k of keys) {
+        if (obj[k] !== undefined && obj[k] !== null) return obj[k];
+      }
+      return null;
+    };
+
+    const categoria_id =
+      getVal(producto, ["categoria_id", "categoria"]) || null;
+    const patron_id = getVal(producto, ["patron_id", "patron"]) || null;
+    const talla_id = getVal(producto, ["talla_id", "talla"]) || null;
+
+    const categoriasCache = cache?.categorias ?? [];
+    const patronesCache = cache?.patrones ?? [];
+    const tallasCache = cache?.tallas ?? [];
+
+    const catObj =
+      categoriasCache.find((c) => c.categoria_id === categoria_id) ||
+      categoriasCache.find((c) => c.categoria_id === producto.categoria) ||
+      {};
+    const categoriaName =
+      catObj.nombre ?? catObj.nombre_categoria ?? "Sin categoría";
+
+    const patronObj =
+      patronesCache.find((pt) => pt.patron_id === patron_id) || {};
+    const patronName =
+      patronObj.nombre ??
+      patronObj.nombre_patron ??
+      patronObj.codigo_patron ??
+      "";
+
+    const tallaObj = tallasCache.find((t) => t.talla_id === talla_id) || {};
+    const tallaName =
+      tallaObj.nombre ??
+      tallaObj.nombre_talla ??
+      tallaObj.label ??
+      talla_id ??
+      "";
+
+    const col = document.createElement("div");
+    col.className = "col-md-4 col-lg-3";
+
+    const card = document.createElement("div");
+    card.className = `product-card ${!isActive ? "product-inactive" : ""}`;
+
+    // Construir <picture> con <source type="image/webp"> (data-srcset) y <img data-src>
+    const picture = document.createElement("picture");
+    const sourceWebp = document.createElement("source");
+    sourceWebp.type = "image/webp";
+    // generar data-srcset usando los webp generados: baseName-<size>.webp
+    try {
+      const clean = String(imagen).split("?")[0];
+      const lastSlash = clean.lastIndexOf("/");
+      const dir = lastSlash !== -1 ? clean.substring(0, lastSlash) : "";
+      const filename =
+        lastSlash !== -1 ? clean.substring(lastSlash + 1) : clean;
+      const dot = filename.lastIndexOf(".");
+      const nameNoExt = dot !== -1 ? filename.substring(0, dot) : filename;
+      const base = dir ? `${dir}/${nameNoExt}` : nameNoExt;
+      const sizes = [400, 800, 1200];
+      const srcset = sizes.map((s) => `${base}-${s}.webp ${s}w`).join(", ");
+      sourceWebp.setAttribute("data-srcset", srcset);
+    } catch (err) {
+      // si falla, no ponemos srcset
+    }
+
+    const img = document.createElement("img");
+    img.className = "product-image lazy";
+    // placeholder in src, real image in data-src (fallback for browsers without webp)
+    img.src = "/placeholder.svg?height=300&width=300";
+    img.setAttribute("data-src", imagen);
+    img.alt = Utils.escapeHtml(nombre);
+    picture.appendChild(sourceWebp);
+    picture.appendChild(img);
+
+    const info = document.createElement("div");
+    info.className = "product-info";
+    info.innerHTML = `
+      <h5 class="product-name">${Utils.escapeHtml(nombre)}</h5>
+      <p class="product-description">${Utils.escapeHtml(descripcion)}</p>
+    `;
+
+    // detalles
+    const detalles = document.createElement("div");
+    detalles.className = "product-details";
+    const detCat = document.createElement("div");
+    detCat.className = "detail-item categoria";
+    detCat.textContent = categoriaName;
+    detalles.appendChild(detCat);
+    if (patronName) {
+      const detPat = document.createElement("div");
+      detPat.className = "detail-item patron";
+      detPat.textContent = `Patrón: ${patronName}`;
+      detalles.appendChild(detPat);
+    }
+    if (tallaName) {
+      const detTal = document.createElement("div");
+      detTal.className = "detail-item talla";
+      detTal.textContent = `Talla: ${tallaName}`;
+      detalles.appendChild(detTal);
+    }
+
+    const precioP = document.createElement("p");
+    precioP.className = "product-price";
+    precioP.textContent = `$${precio}`;
+
+    const stockP = document.createElement("p");
+    stockP.className = `product-stock ${
+      disponible ? "stock-disponible" : "stock-agotado"
+    }`;
+    stockP.textContent = !isActive
+      ? "No Disponible"
+      : stockVal
+      ? "En Stock"
+      : "Agotado";
+
+    const btn = document.createElement("button");
+    btn.className = "btn btn-add-cart";
+    if (!disponible) btn.setAttribute("disabled", "");
+    btn.setAttribute("onclick", `agregarAlCarrito(${id})`);
+    btn.textContent = disponible ? "Agregar al Carrito" : "No Disponible";
+
+    // assemble (append picture)
+    card.appendChild(picture);
+    card.appendChild(info);
+    info.appendChild(detalles);
+    info.appendChild(precioP);
+    info.appendChild(stockP);
+    info.appendChild(btn);
+    col.appendChild(card);
+
+    return col;
+  }
+
+  // Render products in chunks to avoid blocking the main thread
+  static _renderInChunks(productos, containerId, chunkSize = 20) {
+    try {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      let i = 0;
+      const total = productos.length;
+
+      const renderChunk = () => {
+        const fragment = document.createDocumentFragment();
+        let count = 0;
+        while (i < total && count < chunkSize) {
+          const prod = productos[i++];
+          const el = CatalogoPage.crearProductoCardElement(prod);
+          fragment.appendChild(el);
+          count++;
+        }
+        container.appendChild(fragment);
+        // observe lazy images inside container
+        try {
+          const imgs = container.querySelectorAll("img.lazy");
+          imgs.forEach(
+            (img) => this._lazyObserver && this._lazyObserver.observe(img)
+          );
+        } catch (err) {}
+
+        if (i < total) {
+          if (typeof requestIdleCallback === "function") {
+            requestIdleCallback(renderChunk, { timeout: 200 });
+          } else {
+            setTimeout(renderChunk, 50);
+          }
+        }
+      };
+
+      renderChunk();
+    } catch (err) {
+      console.error("Error in _renderInChunks:", err);
+      // fallback: render synchronously
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      const html = productos
+        .map((p) => CatalogoPage.crearProductoCard(p))
+        .join("");
+      container.innerHTML += html;
     }
   }
   // Mostrar modal informativo para pedidos personalizados

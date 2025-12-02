@@ -24,6 +24,96 @@
   text-align: center;
 }
 
+/* ======================
+   FILTROS: estilo y móvil
+   ====================== */
+.filtros-adicionales {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-right: 0.5rem;
+}
+.filter-panel {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.filter-label {
+  font-size: 0.85rem;
+  color: #cfcfcf;
+}
+
+/* Estilo oscuro para selects de filtros */
+.filtros-adicionales .form-select {
+  background-color: #000;
+  color: #fff;
+  border: 1px solid #333;
+  padding: 0.4rem 0.6rem;
+  min-width: 120px;
+  border-radius: 6px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  /* Custom white caret (SVG) */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path fill='%23ffffff' d='M0 0l5 6 5-6z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 6px;
+  padding-right: 2.2rem;
+}
+.filtros-adicionales .form-select option {
+  background-color: #000;
+  color: #fff;
+}
+
+/* Botones dentro del bloque de filtros */
+.filtros-adicionales .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.95rem;
+  border-radius: 8px;
+}
+
+/* Spinner position */
+.filter-spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ajustes para pantallas pequeñas */
+@media (max-width: 576px) {
+  .filtros-adicionales {
+    gap: 0.4rem;
+    align-items: stretch;
+  }
+  .filter-group {
+    width: 100%;
+    margin-right: 0;
+  }
+  .filtros-adicionales .form-select {
+    width: 100%;
+    min-width: 0;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.9rem;
+  }
+  .filtros-adicionales .btn {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+  }
+  #filters_spinner_graymayas,
+  #filters_spinner_basicos {
+    margin-left: 0 !important;
+    margin-top: 6px;
+  }
+}
+
+
 /* Vista móvil: hacer el panel y texto más pequeños */
 @media (max-width: 576px) {
   .catalogo-text-panel {

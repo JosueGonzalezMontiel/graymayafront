@@ -5,3 +5,30 @@
   from = "/api/*"
   to   = "/.netlify/functions/proxy/:splat"
   status = 200
+
+[[headers]]
+  for = "/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+[[headers]]
+  for = "/public/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+[[headers]]
+  for = "/img/*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+[build]
+  # Ejecuta generación de webp antes del build real
+  command = "npm run generate-images && npm run build"
+  # Ajusta esto al directorio que Netlify debe publicar
+  publish = "public"
+
+[build.environment]
+  # Forzar versión Node (ajusta según necesites)
+  NODE_VERSION = "20"
+  # Si prefieres asegurar que Netlify instale devDependencies:
+  # NPM_FLAGS = "--include=dev"
